@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="{{ current_lang }}" dir="{{ text_direction }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>{{ t('admin.login.title') }} | {{ shop_name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="admin-login-page">
+<div class="page-shell">
+    <main class="login-page">
+        <form class="login-card content-panel" method="post">
+            {% include "_csrf_token.html" %}
+            <div class="login-card-top">
+                <div class="language-switcher language-switcher--login" aria-label="{{ t('common.language') }}">
+                    {% for code, meta in languages.items() %}
+                        <a
+                            class="language-switcher-link {% if code == current_lang %}is-active{% endif %}"
+                            href="{{ url_for('public.set_language', lang_code=code, next=request.full_path) }}"
+                            lang="{{ code }}"
+                            dir="{{ meta.dir }}"
+                            title="{{ meta.name }}"
+                            {% if code == current_lang %}aria-current="true"{% endif %}
+                        >
+                            {{ meta.label }}
+                        </a>
+                    {% endfor %}
+                </div>
+
+                <div class="login-brand">
+                    <img src="{{ url_for('static', filename='images/LOGO.png') }}" alt="{{ t('brand.logo_alt', shop_name=shop_name) }}" class="login-brand-logo">
+                    <div class="login-brand-copy">
+                        <p class="sidebar-role">{{ t('admin.space') }}</p>
+                        <h1>{{ shop_name }}</h1>
+                    </div>
+                </div>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-stack">
+                        {% for category, message in messages %}
+                            <div class="flash {{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <input name="username" placeholder="{{ t('admin.login.username') }}" required>
+            <input name="password" type="password" placeholder="{{ t('admin.login.password') }}" required>
+            <button type="submit" class="button-primary">{{ t('admin.login.submit') }}</button>
+            <a class="button-secondary" href="{{ url_for('public.index') }}">{{ t('admin.login.back') }}</a>
+        </form>
+    </main>
+</div>
+</body>
+</html>

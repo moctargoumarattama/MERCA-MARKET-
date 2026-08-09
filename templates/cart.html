@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}{{ t('cart.page_title') }} | {{ shop_name }}{% endblock %}
+
+{% block content %}
+<section class="section cart-page">
+    <div class="section-head">
+        <div>
+            <span class="eyebrow">{{ t('cart.kicker') }}</span>
+            <h1>{{ t('cart.title') }}</h1>
+            <p class="section-subtitle">
+                {{ t('cart.subtitle') }}
+            </p>
+        </div>
+        <a href="{{ url_for('public.index') }}#products">{{ t('cart.continue') }}</a>
+    </div>
+
+    <div class="cart-layout">
+        <div class="content-panel cart-items-panel">
+            <div id="cart-items" class="cart-items"></div>
+        </div>
+
+        <aside id="cart-summary" class="cart-summary">
+            <h2>{{ t('cart.total_label') }} : <span id="cart-total">0.00 DH</span></h2>
+            <p class="order-note">
+                {{ t('cart.order_note') }}
+            </p>
+
+            <label class="field">
+                <span>{{ t('cart.name_label') }}</span>
+                <input id="customer-name" placeholder="{{ t('cart.name_placeholder') }}">
+            </label>
+
+            <label class="field">
+                <span>{{ t('cart.address_label') }}</span>
+                <input id="customer-address" placeholder="{{ t('cart.address_placeholder') }}">
+            </label>
+
+            <button class="whatsapp-button" type="button" onclick="sendOrderToWhatsApp()">
+                {{ t('cart.whatsapp') }}
+            </button>
+
+            <button class="secondary-button" type="button" onclick="clearCart()">
+                {{ t('cart.clear') }}
+            </button>
+        </aside>
+    </div>
+</section>
+{% endblock %}

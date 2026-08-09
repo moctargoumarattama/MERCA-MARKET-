@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="{{ current_lang }}" dir="{{ text_direction }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#fbf7ea">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="description" content="{{ shop_name }} - {{ error.title }}">
+    <title>{{ error.code }} - {{ shop_name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="error-page">
+    <span class="error-decoration error-decoration--one" aria-hidden="true"></span>
+    <span class="error-decoration error-decoration--two" aria-hidden="true"></span>
+
+    <main class="error-shell">
+        <header class="error-header">
+            <a class="error-brand" href="{{ error.home_url }}">
+                <img src="{{ url_for('static', filename='images/LOGO.png') }}" alt="{{ t('brand.logo_alt', shop_name=shop_name) }}" class="error-brand-logo">
+                <span class="error-brand-copy">
+                    <strong>{{ shop_name }}</strong>
+                    <small>{{ t('brand.tagline') }}</small>
+                </span>
+            </a>
+
+            <div class="language-switcher" aria-label="{{ t('common.language') }}">
+                {% for code, meta in languages.items() %}
+                    <a
+                        class="language-switcher-link {% if code == current_lang %}is-active{% endif %}"
+                        href="{{ url_for('public.set_language', lang_code=code, next=request.full_path) }}"
+                        lang="{{ code }}"
+                        dir="{{ meta.dir }}"
+                        title="{{ meta.name }}"
+                        {% if code == current_lang %}aria-current="true"{% endif %}
+                    >
+                        {{ meta.label }}
+                    </a>
+                {% endfor %}
+            </div>
+        </header>
+
+        <section class="error-layout">
+            <article class="error-card">
+                <span class="error-eyebrow">{{ error.eyebrow }}</span>
+                <div class="error-code" aria-hidden="true">{{ error.code }}</div>
+                <h1>{{ error.title }}</h1>
+                <p class="error-lead">{{ error.lead }}</p>
+                <p class="error-detail">{{ error.detail }}</p>
+
+                <div class="error-actions">
+                    <a class="button-primary" href="{{ error.primary_url }}">{{ error.primary_label }}</a>
+                    <a class="button-secondary" href="{{ error.secondary_url }}">{{ error.secondary_label }}</a>
+                </div>
+            </article>
+
+            <aside class="error-panel">
+                <div class="error-panel-block">
+                    <h2>{{ error.tip_title }}</h2>
+                    <ul class="error-tips">
+                        {% for tip in error.tips %}
+                            <li>{{ tip }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div class="error-panel-block error-contact-block">
+                    <span class="error-contact-label">{{ t('common.address') }}</span>
+                    <p class="error-address">{{ shop_address }}</p>
+
+                    <span class="error-contact-label">{{ t('common.follow_us') }}</span>
+                    <div class="error-social-links">
+                        <a class="error-social-link error-social-link--facebook" href="{{ facebook_url }}" target="_blank" rel="noopener">{{ t('footer.facebook') }}</a>
+                        <a class="error-social-link error-social-link--instagram" href="{{ instagram_url }}" target="_blank" rel="noopener">{{ t('footer.instagram') }}</a>
+                    </div>
+
+                    <a class="footer-whatsapp error-whatsapp" href="https://wa.me/{{ whatsapp_number }}" target="_blank" rel="noopener">
+                        {{ t('footer.whatsapp_button') }}
+                    </a>
+                </div>
+            </aside>
+        </section>
+    </main>
+</body>
+</html>

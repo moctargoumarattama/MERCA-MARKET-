@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="{{ current_lang }}" dir="{{ text_direction }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#120a05">
+    <meta name="description" content="{{ shop_name }} - {{ t('app.meta_description') }}">
+    <title>{% block title %}{{ shop_name }}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="page-shell">
+    <header class="header">
+        <div class="header-inner">
+            <a class="logo" href="{{ url_for('public.index') }}">
+                <img src="{{ url_for('static', filename='images/LOGO.png') }}" alt="{{ t('brand.logo_alt', shop_name=shop_name) }}" class="logo-img">
+                <span class="logo-text">
+                    <strong>{{ shop_name }}</strong>
+                </span>
+            </a>
+
+            <button
+                type="button"
+                class="menu-toggle"
+                aria-expanded="false"
+                aria-controls="main-nav"
+                aria-label="{{ t('nav.open_menu') }}"
+                onclick="toggleMobileMenu()"
+            >
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+
+            <nav class="nav-panel" id="main-nav">
+                <div class="nav-links">
+                    <a href="{{ url_for('public.index') }}">{{ t('common.home') }}</a>
+                </div>
+
+                <div class="header-actions">
+                    <div class="language-switcher" aria-label="{{ t('common.language') }}">
+                        {% for code, meta in languages.items() %}
+                            <a
+                                class="language-switcher-link {% if code == current_lang %}is-active{% endif %}"
+                                href="{{ url_for('public.set_language', lang_code=code, next=request.full_path) }}"
+                                lang="{{ code }}"
+                                dir="{{ meta.dir }}"
+                                title="{{ meta.name }}"
+                                {% if code == current_lang %}aria-current="true"{% endif %}
+                            >
+                                {{ meta.label }}
+                            </a>
+                        {% endfor %}
+                    </div>
+
+                    <a class="nav-cart" href="{{ url_for('public.cart') }}">
+                        {{ t('nav.cart') }} <span id="cart-count">0</span>
+                    </a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="site-main">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="section flash-stack">
+                    {% for category, message in messages %}
+                        <div class="flash {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <button
+        type="button"
+        class="quick-return"
+        data-quick-return
+        hidden
+        aria-label="{{ t('quick_return.kicker') }}"
+    >
+        <span class="quick-return-kicker">{{ t('quick_return.kicker') }}</span>
+        <strong data-quick-return-title>{{ t('quick_return.products') }}</strong>
+    </button>
+
+    <footer class="footer" id="contact">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <a class="footer-logo" href="{{ url_for('public.index') }}">
+                    <img src="{{ url_for('static', filename='images/LOGO.png') }}" alt="{{ t('brand.logo_alt', shop_name=shop_name) }}" class="footer-logo-img">
+                    <span class="footer-logo-text">
+                        <strong>{{ shop_name }}</strong>
+                        <small>{{ t('brand.tagline') }}</small>
+                    </span>
+                </a>
+
+                <p class="footer-address">
+                    <span class="footer-address-label">{{ t('footer.address_label') }}</span>
+                    <span class="footer-address-text">{{ shop_address }}</span>
+                </p>
+
+                <div class="footer-social">
+                    <span class="footer-social-label">{{ t('footer.follow_label') }}</span>
+                    <div class="footer-social-links">
+                        <a class="footer-social-link footer-social-link--facebook" href="{{ facebook_url }}" target="_blank" rel="noopener">{{ t('footer.facebook') }}</a>
+                        <a class="footer-social-link footer-social-link--instagram" href="{{ instagram_url }}" target="_blank" rel="noopener">{{ t('footer.instagram') }}</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-cta">
+                <span class="footer-kicker">{{ t('footer.quick_order') }}</span>
+                <p>{{ t('footer.write_whatsapp') }}</p>
+                <a class="footer-whatsapp" href="https://wa.me/{{ whatsapp_number }}" target="_blank" rel="noopener">
+                    {{ t('footer.whatsapp_button') }}
+                </a>
+                <small class="footer-note">{{ t('footer.reply_note') }}</small>
+            </div>
+        </div>
+    </footer>
+</div>
+
+<div class="product-modal" data-product-modal hidden>
+    <button type="button" class="product-modal-backdrop" data-product-modal-close aria-label="{{ t('modal.close') }}"></button>
+    <div class="product-modal-panel" role="dialog" aria-modal="true" aria-labelledby="product-modal-title">
+        <div class="product-modal-visual" data-product-modal-visual hidden>
+            <img data-product-modal-image alt="">
+        </div>
+
+        <div class="product-modal-header">
+            <div>
+                <span class="eyebrow">{{ t('modal.see_more') }}</span>
+                <h2 id="product-modal-title" data-product-modal-title>{{ t('modal.product') }}</h2>
+            </div>
+            <button type="button" class="product-modal-close" data-product-modal-close aria-label="{{ t('modal.close') }}">{{ t('modal.close') }}</button>
+        </div>
+
+        <p class="product-modal-category" data-product-modal-category></p>
+        <p class="product-modal-description" data-product-modal-description></p>
+    </div>
+</div>
+
+<script id="shop-config" type="application/json">
+{{ {
+        "whatsappNumber": whatsapp_number,
+        "shopName": shop_name,
+        "shopAddress": shop_address,
+        "searchUrl": url_for('public.api_search'),
+        "staticImagesUrl": url_for('static', filename='images/'),
+        "productsUrl": url_for('public.index') ~ '#products',
+        "indexUrl": url_for('public.index'),
+        "cartUrl": url_for('public.cart'),
+        "currentLanguage": current_lang,
+        "textDirection": text_direction,
+        "uiStrings": ui_strings,
+        "defaultUiStrings": default_ui_strings,
+        "translationMissingKeys": translation_missing_keys
+    } | tojson }}
+</script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

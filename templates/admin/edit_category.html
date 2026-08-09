@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="{{ current_lang }}" dir="{{ text_direction }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>{{ t('admin.edit_category.title') }} | {{ shop_name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="page-shell">
+    {% include "admin/_header.html" %}
+
+    <main class="section admin-layout admin-layout--single">
+        <section class="admin-panel admin-panel--wide">
+            <div class="section-head">
+                <div>
+                    <span class="eyebrow">{{ t('admin.category.kicker') }}</span>
+                    <h1>{{ t('admin.edit_category.title') }}</h1>
+                    <p class="section-subtitle">{{ t('admin.edit_category.subtitle', count=category.product_count) }}</p>
+                </div>
+                <a href="{{ url_for('admin.dashboard', panel='catalogue') }}">{{ t('admin.category.back') }}</a>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-stack">
+                        {% for category_name, message in messages %}
+                            <div class="flash {{ category_name }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <form method="post" class="admin-form">
+                {% include "_csrf_token.html" %}
+                <input name="name" value="{{ category.name }}" placeholder="{{ t('admin.edit_category.input') }}" required>
+                <button type="submit" class="button-primary">{{ t('common.save') }}</button>
+            </form>
+        </section>
+    </main>
+</div>
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

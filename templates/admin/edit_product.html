@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="{{ current_lang }}" dir="{{ text_direction }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>{{ t('admin.product.edit_title') }} | {{ shop_name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="page-shell">
+    {% include "admin/_header.html" %}
+
+    <main class="section admin-layout admin-layout--single">
+        <section class="admin-panel admin-panel--wide">
+            <div class="section-head">
+                <div>
+                    <span class="eyebrow">{{ t('admin.product.kicker') }}</span>
+                    <h1>{{ t('admin.product.edit_title') }}</h1>
+                    <p class="section-subtitle">{{ t('admin.product.edit_subtitle') }}</p>
+                </div>
+                <a href="{% if product.category_id %}{{ url_for('admin.dashboard', panel='products', category=product.category_id) }}{% else %}{{ url_for('admin.dashboard', panel='catalogue') }}{% endif %}">{{ t('admin.edit_product.return') }}</a>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-stack">
+                        {% for category, message in messages %}
+                            <div class="flash {{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <form method="post" action="{{ url_for('admin.edit_product', product_id=product.id) }}" enctype="multipart/form-data" class="admin-form">
+                {% include "_csrf_token.html" %}
+                <input name="name" placeholder="{{ t('admin.product.name_placeholder') }}" value="{{ product.name }}" required>
+                <textarea name="description" placeholder="{{ t('admin.product.description_placeholder') }}">{{ product.description }}</textarea>
+                <input name="price" type="number" min="0" step="0.01" placeholder="{{ t('admin.product.price_placeholder') }}" value="{{ product.price }}" required>
+                <input
+                    name="stock"
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="{{ t('admin.product.stock_placeholder') }}"
+                    value="{{ product.stock if product.stock is not none else '' }}"
+                >
+                <select name="category_id">
+                    <option value="" {% if not product.category_id %}selected{% endif %}>{{ t('admin.product.without_category') }}</option>
+                    {% for category in categories %}
+                        <option value="{{ category.id }}" {% if category.id == product.category_id %}selected{% endif %}>
+                            {{ category.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+                <input name="image" type="file" accept=".jpg,.jpeg,.png,.webp,.gif">
+                {% if product.image %}
+                    <div class="product-preview">
+                        <img src="{{ url_for('static', filename='images/' + product.image) }}" alt="{{ product.name }}">
+                        <p>{{ t('admin.product.current_image', image=product.image) }}</p>
+                    </div>
+                {% endif %}
+                <label class="checkbox-label">
+                    <input type="checkbox" name="available" {% if product.available %}checked{% endif %}>
+                    {{ t('admin.product.available') }}
+                </label>
+                <button type="submit" class="button-primary">{{ t('admin.product.save_changes') }}</button>
+            </form>
+        </section>
+    </main>
+</div>
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

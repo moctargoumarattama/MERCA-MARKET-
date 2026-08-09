@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+{% block title %}{{ shop_name }} | {{ t('home.page_title') }}{% endblock %}
+
+{% block content %}
+<section class="hero hero-home">
+    <div class="section hero-grid hero-grid--simple">
+        <div class="hero-copy">
+            <h1>{{ t('home.hero.title') }}</h1>
+            <p>{{ t('home.hero.subtitle') }}</p>
+
+            <div class="hero-actions">
+                <a class="button-primary" href="{{ url_for('public.index') }}#products">{{ t('home.hero.cta.products') }}</a>
+                <a class="button-secondary" href="https://wa.me/{{ whatsapp_number }}" target="_blank" rel="noopener">{{ t('home.hero.cta.whatsapp') }}</a>
+            </div>
+        </div>
+
+        <div class="hero-visual" aria-hidden="true">
+            <div class="hero-visual-frame">
+                <img src="{{ url_for('static', filename='images/3.png') }}" alt="">
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="section search-section" id="search">
+    <div class="search-live search-live--home" data-live-search-root>
+        <div class="search-live-bar">
+            <span class="search-live-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" role="presentation" focusable="false">
+                    <path d="M10.5 4a6.5 6.5 0 1 1 4.07 11.57l4.43 4.43-1.41 1.41-4.43-4.43A6.5 6.5 0 0 1 10.5 4Zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z"></path>
+                </svg>
+            </span>
+            <input
+                id="home-search"
+                type="search"
+                placeholder="{{ t('home.search.placeholder') }}"
+                aria-label="{{ t('home.search.aria') }}"
+                autocomplete="off"
+                data-live-search-input
+            >
+        </div>
+        <div class="search-live-results" data-live-search-results hidden></div>
+    </div>
+</section>
+
+<section class="section section-block" id="categories">
+    <div class="section-head section-head--center">
+        <div>
+            <span class="eyebrow">{{ t('home.categories.eyebrow') }}</span>
+            <h2>{{ t('home.categories.title') }}</h2>
+        </div>
+    </div>
+
+    <div class="category-grid category-grid--gallery">
+        {% for category in categories %}
+            <a
+                class="category-card category-card--gallery {% if selected_category == category.id %}is-active{% endif %}"
+                href="{{ url_for('public.index', category=category.id) }}#products"
+            >
+                <div class="category-media">
+                    {% if category.cover_image %}
+                        <img src="{{ url_for('static', filename='images/' + category.cover_image) }}" alt="{{ category.name }}">
+                    {% else %}
+                        <div class="category-fallback">
+                            <span>{{ category.name[:1] | upper }}</span>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="category-body">
+                    <strong>{{ category.name }}</strong>
+                    <span>{% if selected_category == category.id %}{{ t('home.categories.active') }}{% else %}{{ t('home.categories.view_products') }}{% endif %}</span>
+                </div>
+            </a>
+        {% else %}
+            <div class="empty-state">
+                <h3>{{ t('home.categories.empty.title') }}</h3>
+                <p>{{ t('home.categories.empty.body') }}</p>
+            </div>
+        {% endfor %}
+    </div>
+</section>
+
+{% if selected_category or q %}
+<section class="section section-block">
+    <div class="content-panel catalog-filter-strip {% if selected_category %}catalog-filter-strip--category{% endif %}">
+        <div class="catalog-filter-copy">
+            <span class="eyebrow">{{ t('home.filter.eyebrow') }}</span>
+            <h2>
+                {% if selected_category %}
+                    {% if active_category %}
+                        {{ t('home.filter.category_prefix') }}: {{ active_category.name }}
+                    {% else %}
+                        {{ t('home.filter.category_selected') }}
+                    {% endif %}
+                {% else %}
+                    {{ t('home.filter.search_prefix') }}: "{{ q }}"
+                {% endif %}
+            </h2>
+            <p>{{ t('home.filter.results', count=results_count, suffix=plural_suffix(results_count)) }}</p>
+        </div>
+
+        <a class="button-primary" href="{{ url_for('public.index') }}">{{ t('home.filter.back') }}</a>
+    </div>
+</section>
+{% endif %}
+
+<section class="section section-block" id="products">
+    {% if selected_category or q %}
+        <div class="section-head section-head--center">
+            <div>
+                <span class="eyebrow">{% if selected_category %}{{ t('home.results.by_category') }}{% else %}{{ t('home.results.by_search') }}{% endif %}</span>
+                <h2>{% if selected_category %}{{ active_category.name if active_category else t('home.filter.category_selected') }}{% else %}{{ t('home.filter.search_prefix') }}: {{ q }}{% endif %}</h2>
+                <p class="section-subtitle">
+                    {% if selected_category %}
+                        {{ t('home.results.subtitle.category', count=results_count, suffix=plural_suffix(results_count)) }}
+                    {% else %}
+                        {{ t('home.results.subtitle.search', count=results_count, suffix=plural_suffix(results_count)) }}
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <div class="product-grid product-grid--compact">
+            {% for product in products %}
+                <article class="product-card product-card--compact">
+                    <div class="product-media">
+                        {% if product.image %}
+                            <img src="{{ url_for('static', filename='images/' + product.image) }}" alt="{{ product.name }}">
+                        {% else %}
+                            <div class="no-image">MF</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="product-info">
+                        <small>{{ product.category_name or t('home.product.category_empty') }}</small>
+                        <h3>{{ product.name }}</h3>
+                        <div class="price-row">
+                            <strong>{{ "%.2f"|format(product.price) }} DH</strong>
+                        </div>
+                        <button
+                            type="button"
+                            class="product-more"
+                            data-show-description
+                            data-product-name="{{ product.name|e }}"
+                            data-product-description="{{ (product.description or t('home.product.no_description'))|e }}"
+                            data-product-category="{{ (product.category_name or t('home.product.category_empty'))|e }}"
+                            data-product-image="{{ (product.image or '')|e }}"
+                        >
+                            {{ t('home.product.see_more') }}
+                        </button>
+                        <button
+                            type="button"
+                            class="button-primary"
+                            {% if product.stock == 0 %}disabled{% endif %}
+                            data-cart-add
+                            data-product-id="{{ product.id }}"
+                            data-product-name="{{ product.name|e }}"
+                            data-product-price="{{ product.price }}"
+                            data-product-image="{{ product.image|e }}"
+                            data-product-stock="{{ product.stock }}"
+                        >
+                            {% if product.stock == 0 %}
+                                {{ t('home.product.out_of_stock') }}
+                            {% else %}
+                                {{ t('home.product.add') }}
+                            {% endif %}
+                        </button>
+                    </div>
+                </article>
+            {% else %}
+                <div class="empty-state">
+                    <h3>{{ t('home.products.empty.title') }}</h3>
+                    <p>
+                        {% if active_category %}
+                            {{ t('home.products.empty.by_category') }}
+                        {% elif q %}
+                            {{ t('home.products.empty.by_search') }}
+                        {% endif %}
+                    </p>
+                    <a class="button-primary" href="{{ url_for('public.index') }}">{{ t('home.products.back') }}</a>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="showcase-kicker">{{ t('home.showcase.kicker') }}</div>
+        {% if showcase_products %}
+            <div class="showcase-marquee" aria-label="{{ t('home.showcase.kicker') }}">
+                <div class="showcase-track">
+                    <div class="showcase-group">
+                        {% for product in showcase_products %}
+                            <article class="showcase-card">
+                                <a class="showcase-link" href="{{ url_for('public.index', category=product.category_id) }}#products" aria-label="{{ t('home.showcase.open_category') }} {{ product.category_name or t('home.product.category_empty') }} - {{ product.name }}">
+                                    <div class="showcase-media">
+                                        {% if product.image %}
+                                            <img src="{{ url_for('static', filename='images/' + product.image) }}" alt="{{ product.name }}">
+                                        {% else %}
+                                            <div class="showcase-fallback">MF</div>
+                                        {% endif %}
+                                        <span class="showcase-badge">{{ product.category_name or t('home.product.category_empty') }}</span>
+                                    </div>
+                                    <div class="showcase-body">
+                                        <h3>{{ product.name }}</h3>
+                                        <div class="showcase-meta">
+                                            <strong>{{ "%.2f"|format(product.price) }} DH</strong>
+                                            <span>{{ t('home.showcase.open_category') }}</span>
+                                        </div>
+                                    </div>
+                                </a>
+                                <button
+                                    type="button"
+                                    class="showcase-more"
+                                    data-show-description
+                                    data-product-name="{{ product.name|e }}"
+                                    data-product-description="{{ (product.description or t('home.product.no_description'))|e }}"
+                                    data-product-category="{{ (product.category_name or t('home.product.category_empty'))|e }}"
+                                    data-product-image="{{ (product.image or '')|e }}"
+                                >
+                                    {{ t('home.showcase.more') }}
+                                </button>
+                            </article>
+                        {% endfor %}
+                    </div>
+                    <div class="showcase-group" aria-hidden="true">
+                        {% for product in showcase_products %}
+                            <article class="showcase-card">
+                                <a class="showcase-link" href="{{ url_for('public.index', category=product.category_id) }}#products" aria-hidden="true" tabindex="-1">
+                                    <div class="showcase-media">
+                                        {% if product.image %}
+                                            <img src="{{ url_for('static', filename='images/' + product.image) }}" alt="">
+                                        {% else %}
+                                            <div class="showcase-fallback">MF</div>
+                                        {% endif %}
+                                        <span class="showcase-badge">{{ product.category_name or t('home.product.category_empty') }}</span>
+                                    </div>
+                                    <div class="showcase-body">
+                                        <h3>{{ product.name }}</h3>
+                                        <div class="showcase-meta">
+                                            <strong>{{ "%.2f"|format(product.price) }} DH</strong>
+                                            <span>{{ t('home.showcase.open_category') }}</span>
+                                        </div>
+                                    </div>
+                                </a>
+                                <button
+                                    type="button"
+                                    class="showcase-more"
+                                    data-show-description
+                                    data-product-name="{{ product.name|e }}"
+                                    data-product-description="{{ (product.description or t('home.product.no_description'))|e }}"
+                                    data-product-category="{{ (product.category_name or t('home.product.category_empty'))|e }}"
+                                    data-product-image="{{ (product.image or '')|e }}"
+                                    aria-hidden="true"
+                                    tabindex="-1"
+                                >
+                                    {{ t('home.showcase.more') }}
+                                </button>
+                            </article>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <h3>{{ t('home.showcase.empty.title') }}</h3>
+                <p>{{ t('home.showcase.empty.body') }}</p>
+            </div>
+        {% endif %}
+    {% endif %}
+</section>
+{% endblock %}

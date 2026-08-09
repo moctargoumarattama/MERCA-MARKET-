@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="{{ current_lang }}" dir="{{ text_direction }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>{{ shop_name }} | {{ t('admin.space') }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="page-shell">
+    {% include "admin/_header.html" %}
+
+    <main class="section admin-layout admin-layout--single">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-stack">
+                    {% for category, message in messages %}
+                        <div class="flash {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% if panel == "overview" %}
+            <section class="admin-panel admin-panel--wide admin-panel--overview">
+                <div class="section-head">
+                    <div>
+                        <span class="eyebrow">{{ t('admin.overview.kicker') }}</span>
+                        <h1>{{ t('admin.overview.title') }}</h1>
+                        <p class="section-subtitle">{{ t('admin.overview.subtitle') }}</p>
+                    </div>
+                </div>
+
+                <div class="dashboard-summary dashboard-summary--compact">
+                    <div class="summary-card summary-card--compact summary-card--accent">
+                        <span>{{ t('admin.stats.categories') }}</span>
+                        <strong>{{ stats.category_count }}</strong>
+                    </div>
+                    <div class="summary-card summary-card--compact">
+                        <span>{{ t('admin.stats.products') }}</span>
+                        <strong>{{ stats.product_count }}</strong>
+                    </div>
+                    <div class="summary-card summary-card--compact">
+                        <span>{{ t('admin.stats.visible') }}</span>
+                        <strong>{{ stats.active_product_count }}</strong>
+                    </div>
+                    <div class="summary-card summary-card--compact">
+                        <span>{{ t('admin.stats.sold_out') }}</span>
+                        <strong>{{ stats.sold_out_count }}</strong>
+                    </div>
+                </div>
+
+                <nav class="admin-quick-nav">
+                    <a href="{{ url_for('admin.dashboard', panel='catalogue') }}">
+                        <strong>{{ t('admin.quick_catalogue') }}</strong>
+                        <small>{{ t('admin.quick_catalogue_sub') }}</small>
+                    </a>
+                    <a href="{{ url_for('admin.dashboard', panel='add-category') }}">
+                        <strong>{{ t('admin.quick_add_category') }}</strong>
+                        <small>{{ t('admin.quick_add_category_sub') }}</small>
+                    </a>
+                    <a href="{{ url_for('admin.dashboard', panel='products') }}">
+                        <strong>{{ t('admin.quick_products') }}</strong>
+                        <small>{{ t('admin.quick_products_sub') }}</small>
+                    </a>
+                    <a href="{{ url_for('admin.dashboard', panel='add-product') }}">
+                        <strong>{{ t('admin.quick_add_product') }}</strong>
+                        <small>{{ t('admin.quick_add_product_sub') }}</small>
+                    </a>
+                </nav>
+            </section>
+        {% elif panel == "catalogue" %}
+            <section class="admin-panel admin-panel--wide">
+                <div class="section-head">
+                    <div>
+                        <span class="eyebrow">{{ t('admin.catalogue.kicker') }}</span>
+                        <h1>{{ t('admin.catalogue.title') }}</h1>
+                        <p class="section-subtitle">{{ t('admin.catalogue.subtitle') }}</p>
+                    </div>
+                    <a class="button-secondary" href="{{ url_for('admin.dashboard', panel='add-category') }}">{{ t('admin.catalogue.add_category') }}</a>
+                </div>
+
+                <div class="admin-category-list">
+                    {% for category in categories %}
+                        <article class="admin-category-item {% if selected_category_id == category.id %}is-active{% endif %}">
+                            <a class="admin-category-link" href="{{ url_for('admin.dashboard', panel='products', category=category.id) }}">
+                                <div class="admin-category-media">
+                                    {% if category.cover_image %}
+                                        <img src="{{ url_for('static', filename='images/' + category.cover_image) }}" alt="{{ category.name }}">
+                                    {% else %}
+                                        <div class="category-fallback">
+                                            <span>{{ category.name[:1] | upper }}</span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="admin-category-body">
+                                    <strong class="admin-category-title">{{ category.name }}</strong>
+                                    <span class="admin-category-count">{{ category.product_count }} {{ t('common.product') if category.product_count == 1 else t('common.products') }}</span>
+                                </div>
+                            </a>
+
+                            <div class="admin-category-actions">
+                                <a href="{{ url_for('admin.edit_category', category_id=category.id) }}" class="button-secondary">{{ t('admin.catalogue.modify') }}</a>
+                                <form method="post" action="{{ url_for('admin.delete_category', category_id=category.id) }}" onsubmit="return confirm('{{ t('admin.catalogue.confirm_delete_category') }}');">
+                                    {% include "_csrf_token.html" %}
+                                    <button type="submit" class="button-secondary danger">{{ t('admin.catalogue.delete') }}</button>
+                                </form>
+                            </div>
+                        </article>
+                    {% else %}
+                        <div class="empty-state">
+                            <h3>{{ t('admin.catalogue.empty.title') }}</h3>
+                            <p>{{ t('admin.catalogue.empty.body') }}</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </section>
+        {% elif panel == "add-category" %}
+            <section class="admin-panel admin-panel--wide">
+                <div class="section-head">
+                    <div>
+                        <span class="eyebrow">{{ t('admin.category.kicker') }}</span>
+                        <h1>{{ t('admin.category.add_title') }}</h1>
+                        <p class="section-subtitle">{{ t('admin.category.add_subtitle') }}</p>
+                    </div>
+                    <a class="button-secondary" href="{{ url_for('admin.dashboard', panel='catalogue') }}">{{ t('admin.category.back') }}</a>
+                </div>
+
+                <form method="post" action="{{ url_for('admin.add_category', panel='add-category') }}" class="admin-form inline-form admin-inline-form">
+                    {% include "_csrf_token.html" %}
+                    <input name="name" placeholder="{{ t('admin.category.new_placeholder') }}" required>
+                    <button type="submit" class="button-primary">{{ t('admin.category.save') }}</button>
+                </form>
+            </section>
+        {% elif panel == "products" %}
+            <section class="admin-panel admin-panel--wide admin-panel--product-view">
+                {% if selected_category %}
+                    <div class="section-head">
+                        <div>
+                            <span class="eyebrow">{{ t('admin.menu.products') }}</span>
+                            <h1>{{ selected_category.name }}</h1>
+                            <p class="section-subtitle">
+                                {{ t('admin.category.edit_subtitle', count=selected_category.product_count) }}
+                            </p>
+                        </div>
+                        <a class="button-secondary" href="{{ url_for('admin.dashboard', panel='catalogue') }}">{{ t('admin.category.back') }}</a>
+                    </div>
+
+                    <div class="admin-products admin-products--rows">
+                        {% for product in category_products %}
+                            <article class="admin-product admin-product--compact">
+                                <div class="admin-product-media">
+                                    {% if product.image %}
+                                        <img src="{{ url_for('static', filename='images/' + product.image) }}" alt="{{ product.name }}">
+                                    {% else %}
+                                        <div class="no-image">MF</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="admin-product-body">
+                                    <small>{{ product.category_name or t('admin.product.no_category') }}</small>
+                                    <strong>{{ product.name }}</strong>
+                                    <div class="admin-product-meta">
+                                        <span class="admin-product-price">{{ "%.2f"|format(product.price) }} DH</span>
+                                        <span class="admin-product-status">{{ t('admin.product.visible') if product.available else t('admin.product.hidden') }}</span>
+                                    </div>
+                                </div>
+
+                                <div class="admin-actions admin-actions--stack admin-product-actions">
+                                    <a href="{{ url_for('admin.edit_product', product_id=product.id) }}" class="button-secondary">{{ t('admin.catalogue.modify') }}</a>
+                                    <form method="post" action="{{ url_for('admin.toggle_product', product_id=product.id) }}">
+                                        {% include "_csrf_token.html" %}
+                                        <button type="submit" class="button-secondary">{{ t('admin.product.hide') if product.available else t('admin.product.show') }}</button>
+                                    </form>
+                                    <form method="post" action="{{ url_for('admin.delete_product', product_id=product.id) }}">
+                                        {% include "_csrf_token.html" %}
+                                        <button class="button-secondary danger" type="submit">{{ t('admin.catalogue.delete') }}</button>
+                                    </form>
+                                </div>
+                            </article>
+                        {% else %}
+                            <div class="empty-state empty-state--compact">
+                                <h3>{{ t('admin.category.empty_products_title') }}</h3>
+                                <p>{{ t('admin.category.empty_products_body') }}</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state empty-state--compact">
+                        <h3>{{ t('admin.category.no_open_title') }}</h3>
+                        <p>{{ t('admin.category.no_open_body') }}</p>
+                    </div>
+                {% endif %}
+            </section>
+        {% elif panel == "add-product" %}
+            <section class="admin-panel admin-panel--wide">
+                <div class="section-head">
+                    <div>
+                        <span class="eyebrow">{{ t('admin.product.kicker') }}</span>
+                        <h1>{{ t('admin.product.add_title') }}</h1>
+                        <p class="section-subtitle">{{ t('admin.product.add_subtitle') }}</p>
+                    </div>
+                    <a class="button-secondary" href="{{ url_for('admin.dashboard', panel='catalogue') }}">{{ t('admin.product.view_catalogue') }}</a>
+                </div>
+
+                <form method="post" action="{{ url_for('admin.add_product', panel='add-product') }}" enctype="multipart/form-data" class="admin-form admin-product-form">
+                    {% include "_csrf_token.html" %}
+                    <input name="name" placeholder="{{ t('admin.product.name_placeholder') }}" required>
+                    <textarea name="description" placeholder="{{ t('admin.product.description_placeholder') }}"></textarea>
+                    <input name="price" type="number" min="0" step="0.01" placeholder="{{ t('admin.product.price_placeholder') }}" required>
+                    <input name="stock" type="number" min="0" step="1" placeholder="{{ t('admin.product.stock_placeholder') }}">
+                    <select name="category_id">
+                        <option value="">{{ t('admin.product.without_category') }}</option>
+                        {% for category in categories %}
+                            <option value="{{ category.id }}" {% if selected_category_id == category.id %}selected{% endif %}>{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <input name="image" type="file" accept=".jpg,.jpeg,.png,.webp,.gif">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="available" checked>
+                        {{ t('admin.product.available') }}
+                    </label>
+                    <button type="submit" class="button-primary">{{ t('admin.product.save') }}</button>
+                </form>
+            </section>
+        {% endif %}
+    </main>
+</div>
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
