@@ -1064,7 +1064,6 @@ function bindShowcaseCarousel() {
     let loopWidth = 0;
     let frameId = null;
     let lastTimestamp = 0;
-    let pauseUntil = 0;
     let isVisible = true;
     let isAdjusting = false;
 
@@ -1075,10 +1074,6 @@ function bindShowcaseCarousel() {
             element.setAttribute("tabindex", "-1");
         });
         return clone;
-    };
-
-    const pauseAutoScroll = (duration = 900) => {
-        pauseUntil = Math.max(pauseUntil, performance.now() + duration);
     };
 
     const wrapScroll = () => {
@@ -1140,8 +1135,6 @@ function bindShowcaseCarousel() {
             return;
         }
 
-        pauseAutoScroll(1200);
-
         const distance = Math.max(240, viewport.clientWidth * SHOWCASE_MANUAL_SCROLL_RATIO);
         viewport.scrollBy({
             left: direction * distance,
@@ -1157,7 +1150,7 @@ function bindShowcaseCarousel() {
         const delta = timestamp - lastTimestamp;
         lastTimestamp = timestamp;
 
-        if (isVisible && !document.hidden && !reducedMotionQuery.matches && performance.now() >= pauseUntil && loopWidth > 0) {
+        if (isVisible && !document.hidden && !reducedMotionQuery.matches && loopWidth > 0) {
             viewport.scrollLeft += (SHOWCASE_SCROLL_SPEED * delta) / 1000;
             wrapScroll();
         }
@@ -1198,14 +1191,11 @@ function bindShowcaseCarousel() {
     });
 
     viewport.addEventListener("scroll", wrapScroll, { passive: true });
-    viewport.addEventListener("mouseenter", () => pauseAutoScroll(700));
-    viewport.addEventListener("focusin", () => pauseAutoScroll(700));
     viewport.addEventListener("wheel", (event) => {
         if (Math.abs(event.deltaY) <= Math.abs(event.deltaX) || event.ctrlKey) {
             return;
         }
 
-        pauseAutoScroll(900);
         viewport.scrollLeft += event.deltaY;
         wrapScroll();
         event.preventDefault();
