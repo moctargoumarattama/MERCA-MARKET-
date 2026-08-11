@@ -2875,8 +2875,7 @@ main section[id],
 
 .showcase-marquee {
     position: relative;
-    overflow-x: auto;
-    overflow-y: hidden;
+    overflow: hidden;
     border-radius: 28px;
     padding: 14px;
     background:
@@ -2884,14 +2883,6 @@ main section[id],
         linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 249, 236, 0.94));
     border: 1px solid rgba(201, 175, 129, 0.22);
     box-shadow: 0 18px 36px rgba(40, 23, 13, 0.08);
-    cursor: grab;
-    touch-action: pan-y;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-}
-
-.showcase-marquee::-webkit-scrollbar {
-    display: none;
 }
 
 .showcase-marquee::before,
@@ -2918,18 +2909,17 @@ main section[id],
 .showcase-track {
     display: flex;
     width: max-content;
-    will-change: scroll-position;
+    animation: showcase-scroll 28s linear infinite;
+}
+
+.showcase-marquee:hover .showcase-track,
+.showcase-marquee:focus-within .showcase-track {
+    animation-play-state: paused;
 }
 
 .showcase-group {
     display: flex;
     gap: 16px;
-    flex: 0 0 auto;
-}
-
-.showcase-marquee.is-dragging {
-    cursor: grabbing;
-    user-select: none;
 }
 
 .showcase-card {
@@ -3048,6 +3038,15 @@ main section[id],
 
 .showcase-more:hover {
     background: rgba(245, 196, 0, 0.18);
+}
+
+@keyframes showcase-scroll {
+    from {
+        transform: translateX(0);
+    }
+    to {
+        transform: translateX(-50%);
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {
