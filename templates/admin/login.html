@@ -28,16 +28,7 @@
                 </div>
 
                 <div class="login-brand">
-                    <img
-                        src="{{ url_for('static', filename='images/LOGO.png') }}"
-                        alt="{{ t('brand.logo_alt', shop_name=shop_name) }}"
-                        class="login-brand-logo"
-                        width="1254"
-                        height="1254"
-                        loading="eager"
-                        decoding="async"
-                        fetchpriority="high"
-                    >
+                    <img src="{{ url_for('static', filename='images/LOGO.png') }}" alt="{{ t('brand.logo_alt', shop_name=shop_name) }}" class="login-brand-logo">
                     <div class="login-brand-copy">
                         <p class="sidebar-role">{{ t('admin.space') }}</p>
                         <h1>{{ shop_name }}</h1>

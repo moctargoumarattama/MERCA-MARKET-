@@ -16,16 +16,7 @@
     <main class="error-shell">
         <header class="error-header">
             <a class="error-brand" href="{{ error.home_url }}">
-                <img
-                    src="{{ url_for('static', filename='images/LOGO.png') }}"
-                    alt="{{ t('brand.logo_alt', shop_name=shop_name) }}"
-                    class="error-brand-logo"
-                    width="1254"
-                    height="1254"
-                    loading="eager"
-                    decoding="async"
-                    fetchpriority="high"
-                >
+                <img src="{{ url_for('static', filename='images/LOGO.png') }}" alt="{{ t('brand.logo_alt', shop_name=shop_name) }}" class="error-brand-logo">
                 <span class="error-brand-copy">
                     <strong>{{ shop_name }}</strong>
                     <small>{{ t('brand.tagline') }}</small>
