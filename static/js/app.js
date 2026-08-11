@@ -6,7 +6,10 @@ const SEARCH_MIN_CHARS = 2;
 const SEARCH_DEBOUNCE_MS = 220;
 const QUICK_RETURN_POSITION_KEY = "merca_fruit_sec_quick_return_position";
 const QUICK_RETURN_DRAG_THRESHOLD = 6;
+const SHOWCASE_DRAG_THRESHOLD = 6;
+const SHOWCASE_AUTO_SCROLL_SPEED = 0.05;
 const liveSearchState = new WeakMap();
+const showcaseMarqueeState = new WeakMap();
 const DEFAULT_UI_STRINGS = {
     "js.search.loading": "Recherche en cours...",
     "js.search.unavailable": "La recherche est temporairement indisponible.",
@@ -1034,12 +1037,223 @@ function bindProductModal() {
     });
 }
 
+function getShowcaseMarqueeState(root) {
+    let state = showcaseMarqueeState.get(root);
+
+    if (!state) {
+        state = {
+            animationFrame: null,
+            cycleWidth: 0,
+            dragging: false,
+            ignoreScrollEventsUntil: 0,
+            lastTimestamp: 0,
+            pointerId: null,
+            resumeAt: 0,
+            startScrollLeft: 0,
+            startX: 0,
+            suppressClick: false,
+            normalizing: false,
+        };
+        showcaseMarqueeState.set(root, state);
+    }
+
+    return state;
+}
+
+function cloneShowcaseGroup(group) {
+    const clone = group.cloneNode(true);
+
+    clone.setAttribute("aria-hidden", "true");
+    clone.querySelectorAll("a, button").forEach((element) => {
+        element.setAttribute("tabindex", "-1");
+    });
+
+    return clone;
+}
+
+function ensureShowcaseWidth(root, track, state) {
+    const groups = Array.from(track.querySelectorAll(".showcase-group"));
+
+    if (!groups.length) {
+        return;
+    }
+
+    const cycleWidth = groups[0].getBoundingClientRect().width;
+
+    if (!cycleWidth) {
+        return;
+    }
+
+    state.cycleWidth = cycleWidth;
+
+    const minimumWidth = root.clientWidth + cycleWidth * 2;
+    const template = groups.find((group) => group.getAttribute("aria-hidden") === "true") || groups[groups.length - 1];
+
+    while (track.scrollWidth < minimumWidth) {
+        track.appendChild(cloneShowcaseGroup(template));
+    }
+}
+
+function normalizeShowcaseScroll(root, state) {
+    if (!state.cycleWidth) {
+        return;
+    }
+
+    let nextScrollLeft = root.scrollLeft;
+
+    while (nextScrollLeft >= state.cycleWidth) {
+        nextScrollLeft -= state.cycleWidth;
+    }
+
+    while (nextScrollLeft < 0) {
+        nextScrollLeft += state.cycleWidth;
+    }
+
+    if (nextScrollLeft !== root.scrollLeft) {
+        state.normalizing = true;
+        state.ignoreScrollEventsUntil = performance.now() + 80;
+        root.scrollLeft = nextScrollLeft;
+        window.requestAnimationFrame(() => {
+            state.normalizing = false;
+        });
+    }
+}
+
+function bindShowcaseMarquee(root) {
+    if (root.dataset.showcaseBound === "true") {
+        return;
+    }
+
+    const track = root.querySelector(".showcase-track");
+
+    if (!track) {
+        return;
+    }
+
+    root.dataset.showcaseBound = "true";
+
+    const state = getShowcaseMarqueeState(root);
+    const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    ensureShowcaseWidth(root, track, state);
+    root.scrollLeft = 0;
+    normalizeShowcaseScroll(root, state);
+
+    const tick = (timestamp) => {
+        if (state.animationFrame === null) {
+            return;
+        }
+
+        const delta = state.lastTimestamp ? Math.min(40, timestamp - state.lastTimestamp) : 16;
+        state.lastTimestamp = timestamp;
+
+        if (!document.hidden && !state.dragging && !reducedMotionQuery.matches && timestamp >= state.resumeAt) {
+            state.ignoreScrollEventsUntil = performance.now() + 80;
+            root.scrollLeft += SHOWCASE_AUTO_SCROLL_SPEED * delta;
+            normalizeShowcaseScroll(root, state);
+        }
+
+        state.animationFrame = window.requestAnimationFrame(tick);
+    };
+
+    state.animationFrame = window.requestAnimationFrame(tick);
+
+    const pauseAutoScroll = (duration = 900) => {
+        state.resumeAt = Math.max(state.resumeAt, performance.now() + duration);
+    };
+
+    root.addEventListener("pointerdown", (event) => {
+        if (event.button !== 0) {
+            return;
+        }
+
+        state.pointerId = event.pointerId;
+        state.startX = event.clientX;
+        state.startScrollLeft = root.scrollLeft;
+        state.dragging = false;
+        state.suppressClick = false;
+        pauseAutoScroll(1200);
+        root.setPointerCapture?.(event.pointerId);
+    });
+
+    root.addEventListener("pointermove", (event) => {
+        if (state.pointerId !== event.pointerId) {
+            return;
+        }
+
+        const deltaX = event.clientX - state.startX;
+
+        if (!state.dragging && Math.abs(deltaX) < SHOWCASE_DRAG_THRESHOLD) {
+            return;
+        }
+
+        if (!state.dragging) {
+            state.dragging = true;
+            state.suppressClick = true;
+            root.classList.add("is-dragging");
+        }
+
+        root.scrollLeft = state.startScrollLeft - deltaX;
+        normalizeShowcaseScroll(root, state);
+    });
+
+    const finishPointer = (event) => {
+        if (state.pointerId !== event.pointerId) {
+            return;
+        }
+
+        if (state.dragging) {
+            normalizeShowcaseScroll(root, state);
+        }
+
+        state.dragging = false;
+        state.pointerId = null;
+        root.classList.remove("is-dragging");
+
+        window.setTimeout(() => {
+            state.suppressClick = false;
+        }, 0);
+
+        pauseAutoScroll(1200);
+    };
+
+    root.addEventListener("pointerup", finishPointer);
+    root.addEventListener("pointercancel", finishPointer);
+
+    root.addEventListener("scroll", () => {
+        if (state.normalizing || state.dragging || performance.now() < state.ignoreScrollEventsUntil) {
+            return;
+        }
+
+        pauseAutoScroll(900);
+        normalizeShowcaseScroll(root, state);
+    }, { passive: true });
+
+    root.addEventListener("click", (event) => {
+        if (!state.suppressClick) {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+    }, true);
+
+    window.addEventListener("resize", () => {
+        ensureShowcaseWidth(root, track, state);
+        normalizeShowcaseScroll(root, state);
+    });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     updateCartCount();
     renderCart();
     bindCustomerFields();
     bindQuickReturnButton();
     bindProductModal();
+
+    document.querySelectorAll(".showcase-marquee").forEach((root) => {
+        bindShowcaseMarquee(root);
+    });
 
     document.querySelectorAll("[data-live-search-root]").forEach((root) => {
         bindLiveSearch(root);
