@@ -6,6 +6,9 @@ const SEARCH_MIN_CHARS = 2;
 const SEARCH_DEBOUNCE_MS = 220;
 const QUICK_RETURN_POSITION_KEY = "merca_fruit_sec_quick_return_position";
 const QUICK_RETURN_DRAG_THRESHOLD = 6;
+const SHOWCASE_MIN_COPIES = 2;
+const SHOWCASE_SCROLL_SPEED = 28;
+const SHOWCASE_MANUAL_SCROLL_RATIO = 0.72;
 const liveSearchState = new WeakMap();
 const DEFAULT_UI_STRINGS = {
     "js.search.loading": "Recherche en cours...",
@@ -1034,12 +1037,221 @@ function bindProductModal() {
     });
 }
 
+function bindShowcaseCarousel() {
+    const carousel = document.querySelector("[data-showcase-carousel]");
+
+    if (!carousel) {
+        return;
+    }
+
+    const viewport = carousel.querySelector("[data-showcase-viewport]");
+    const track = carousel.querySelector("[data-showcase-track]");
+    const prevButton = carousel.querySelector("[data-showcase-prev]");
+    const nextButton = carousel.querySelector("[data-showcase-next]");
+
+    if (!viewport || !track) {
+        return;
+    }
+
+    const sourceGroup = track.querySelector("[data-showcase-group]");
+
+    if (!sourceGroup) {
+        return;
+    }
+
+    const hiddenTemplate = track.querySelector('[data-showcase-group][aria-hidden="true"]') || sourceGroup;
+    const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let loopWidth = 0;
+    let frameId = null;
+    let lastTimestamp = 0;
+    let pauseUntil = 0;
+    let isVisible = true;
+    let isAdjusting = false;
+
+    const cloneGroup = () => {
+        const clone = hiddenTemplate.cloneNode(true);
+        clone.setAttribute("aria-hidden", "true");
+        clone.querySelectorAll("a, button").forEach((element) => {
+            element.setAttribute("tabindex", "-1");
+        });
+        return clone;
+    };
+
+    const pauseAutoScroll = (duration = 900) => {
+        pauseUntil = Math.max(pauseUntil, performance.now() + duration);
+    };
+
+    const wrapScroll = () => {
+        if (!loopWidth || isAdjusting) {
+            return;
+        }
+
+        let nextPosition = viewport.scrollLeft;
+        let changed = false;
+
+        while (nextPosition >= loopWidth) {
+            nextPosition -= loopWidth;
+            changed = true;
+        }
+
+        while (nextPosition < 0) {
+            nextPosition += loopWidth;
+            changed = true;
+        }
+
+        if (!changed) {
+            return;
+        }
+
+        isAdjusting = true;
+        viewport.scrollLeft = nextPosition;
+        window.requestAnimationFrame(() => {
+            isAdjusting = false;
+        });
+    };
+
+    const ensureCopies = () => {
+        if (loopWidth <= 0) {
+            loopWidth = sourceGroup.getBoundingClientRect().width;
+        }
+
+        if (loopWidth <= 0) {
+            return;
+        }
+
+        const requiredCopies = Math.max(
+            SHOWCASE_MIN_COPIES,
+            Math.ceil((viewport.clientWidth + loopWidth) / loopWidth)
+        );
+
+        while (track.querySelectorAll("[data-showcase-group]").length < requiredCopies) {
+            track.appendChild(cloneGroup());
+        }
+
+        loopWidth = sourceGroup.getBoundingClientRect().width;
+
+        if (loopWidth > 0) {
+            wrapScroll();
+        }
+    };
+
+    const scrollByAmount = (direction) => {
+        if (!loopWidth) {
+            return;
+        }
+
+        pauseAutoScroll(1200);
+
+        const distance = Math.max(240, viewport.clientWidth * SHOWCASE_MANUAL_SCROLL_RATIO);
+        viewport.scrollBy({
+            left: direction * distance,
+            behavior: "smooth",
+        });
+    };
+
+    const step = (timestamp) => {
+        if (!lastTimestamp) {
+            lastTimestamp = timestamp;
+        }
+
+        const delta = timestamp - lastTimestamp;
+        lastTimestamp = timestamp;
+
+        if (isVisible && !document.hidden && !reducedMotionQuery.matches && performance.now() >= pauseUntil && loopWidth > 0) {
+            viewport.scrollLeft += (SHOWCASE_SCROLL_SPEED * delta) / 1000;
+            wrapScroll();
+        }
+
+        frameId = window.requestAnimationFrame(step);
+    };
+
+    const start = () => {
+        if (frameId === null) {
+            frameId = window.requestAnimationFrame(step);
+        }
+    };
+
+    const stop = () => {
+        if (frameId !== null) {
+            window.cancelAnimationFrame(frameId);
+            frameId = null;
+        }
+
+        lastTimestamp = 0;
+    };
+
+    const syncAnimationState = () => {
+        if (document.hidden || !isVisible || reducedMotionQuery.matches) {
+            stop();
+            return;
+        }
+
+        start();
+    };
+
+    prevButton?.addEventListener("click", () => {
+        scrollByAmount(-1);
+    });
+
+    nextButton?.addEventListener("click", () => {
+        scrollByAmount(1);
+    });
+
+    viewport.addEventListener("scroll", wrapScroll, { passive: true });
+    viewport.addEventListener("mouseenter", () => pauseAutoScroll(700));
+    viewport.addEventListener("focusin", () => pauseAutoScroll(700));
+    viewport.addEventListener("wheel", (event) => {
+        if (Math.abs(event.deltaY) <= Math.abs(event.deltaX) || event.ctrlKey) {
+            return;
+        }
+
+        pauseAutoScroll(900);
+        viewport.scrollLeft += event.deltaY;
+        wrapScroll();
+        event.preventDefault();
+    }, { passive: false });
+
+    viewport.addEventListener("keydown", (event) => {
+        if (event.key === "ArrowLeft") {
+            event.preventDefault();
+            scrollByAmount(-1);
+        }
+
+        if (event.key === "ArrowRight") {
+            event.preventDefault();
+            scrollByAmount(1);
+        }
+    });
+
+    window.addEventListener("resize", ensureCopies, { passive: true });
+    document.addEventListener("visibilitychange", syncAnimationState);
+
+    if (typeof reducedMotionQuery.addEventListener === "function") {
+        reducedMotionQuery.addEventListener("change", syncAnimationState);
+    } else if (typeof reducedMotionQuery.addListener === "function") {
+        reducedMotionQuery.addListener(syncAnimationState);
+    }
+
+    if ("IntersectionObserver" in window) {
+        const observer = new IntersectionObserver((entries) => {
+            isVisible = entries.some((entry) => entry.isIntersecting);
+            syncAnimationState();
+        }, { threshold: 0.2 });
+
+        observer.observe(carousel);
+    }
+
+    ensureCopies();
+    syncAnimationState();
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     updateCartCount();
     renderCart();
     bindCustomerFields();
     bindQuickReturnButton();
     bindProductModal();
+    bindShowcaseCarousel();
 
     document.querySelectorAll("[data-live-search-root]").forEach((root) => {
         bindLiveSearch(root);

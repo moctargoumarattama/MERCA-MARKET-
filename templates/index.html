@@ -184,9 +184,20 @@
     {% else %}
         <div class="showcase-kicker">{{ t('home.showcase.kicker') }}</div>
         {% if showcase_products %}
-            <div class="showcase-marquee" aria-label="{{ t('home.showcase.kicker') }}">
-                <div class="showcase-track">
-                    <div class="showcase-group">
+            <div class="showcase-marquee" data-showcase-carousel aria-label="{{ t('home.showcase.kicker') }}">
+                <button
+                    type="button"
+                    class="showcase-control showcase-control--prev"
+                    data-showcase-prev
+                    aria-label="Voir les produits precedents"
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M15.5 4.5 8 12l7.5 7.5-1.4 1.4L5.2 12l8.9-8.9 1.4 1.4Z"></path>
+                    </svg>
+                </button>
+                <div class="showcase-viewport" data-showcase-viewport tabindex="0">
+                    <div class="showcase-track" data-showcase-track>
+                        <div class="showcase-group" data-showcase-group>
                         {% for product in showcase_products %}
                             <article class="showcase-card">
                                 <a class="showcase-link" href="{{ url_for('public.index', category=product.category_id) }}#products" aria-label="{{ t('home.showcase.open_category') }} {{ product.category_name or t('home.product.category_empty') }} - {{ product.name }}">
@@ -219,8 +230,8 @@
                                 </button>
                             </article>
                         {% endfor %}
-                    </div>
-                    <div class="showcase-group" aria-hidden="true">
+                        </div>
+                        <div class="showcase-group" data-showcase-group aria-hidden="true">
                         {% for product in showcase_products %}
                             <article class="showcase-card">
                                 <a class="showcase-link" href="{{ url_for('public.index', category=product.category_id) }}#products" aria-hidden="true" tabindex="-1">
@@ -255,8 +266,19 @@
                                 </button>
                             </article>
                         {% endfor %}
+                        </div>
                     </div>
                 </div>
+                <button
+                    type="button"
+                    class="showcase-control showcase-control--next"
+                    data-showcase-next
+                    aria-label="Voir les produits suivants"
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="m8.5 4.5 1.4-1.4 8.9 8.9-8.9 8.9-1.4-1.4L16 12 8.5 4.5Z"></path>
+                    </svg>
+                </button>
             </div>
         {% else %}
             <div class="empty-state">
