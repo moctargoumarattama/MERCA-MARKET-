@@ -62,20 +62,6 @@ def load_category_details(db, category_id):
     ).fetchone()
 
 
-def load_showcase_products(db, limit=8):
-    return db.execute(
-        """
-        SELECT p.*, c.name AS category_name
-        FROM products p
-        LEFT JOIN categories c ON c.id = p.category_id
-        WHERE p.available = 1
-        ORDER BY RANDOM()
-        LIMIT ?
-        """,
-        (limit,),
-    ).fetchall()
-
-
 def load_catalog_products(db, q="", category_id=None, limit=None):
     if q:
         fts_query = normalize_search_terms(q)
@@ -195,13 +181,11 @@ def index():
     active_category = load_category_details(db, category_id) if category_id else None
     has_filters = bool(q or category_id)
     products = load_catalog_products(db, q=q, category_id=category_id) if has_filters else []
-    showcase_products = load_showcase_products(db, limit=10) if not has_filters else []
 
     return render_template(
         "index.html",
         categories=categories,
         products=products,
-        showcase_products=showcase_products,
         q=q,
         selected_category=category_id,
         active_category=active_category,
