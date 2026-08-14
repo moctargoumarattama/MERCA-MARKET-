@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#120a05">
     <meta name="description" content="{{ shop_name }} - {{ t('app.meta_description') }}">
     <title>{% block title %}{{ shop_name }}{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css', v=asset_version) }}">
 </head>
 <body>
 <div class="page-shell">
@@ -160,7 +160,7 @@
         "translationMissingKeys": translation_missing_keys
     } | tojson }}
 </script>
-<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script src="{{ url_for('static', filename='js/app.js', v=asset_version) }}"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

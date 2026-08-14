@@ -26,6 +26,8 @@ class Config:
     ENV = "production" if IS_PRODUCTION else "development"
     DEBUG = not IS_PRODUCTION
     PREFERRED_URL_SCHEME = "https" if IS_PRODUCTION else "http"
+    SEND_FILE_MAX_AGE_DEFAULT = 0
+    ASSET_VERSION = os.environ.get("ASSET_VERSION", "merca-fruit-sec-v1")
     WHATSAPP_NUMBER = os.environ.get("WHATSAPP_NUMBER", "212622135964")
     FACEBOOK_URL = os.environ.get("FACEBOOK_URL", "https://www.facebook.com/")
     INSTAGRAM_URL = os.environ.get("INSTAGRAM_URL", "https://www.instagram.com/")

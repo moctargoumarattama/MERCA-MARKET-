@@ -355,6 +355,7 @@ def create_app():
             "ui_strings": get_translation_map(current_language),
             "default_ui_strings": get_translation_map(DEFAULT_LANGUAGE),
             "translation_missing_keys": translation_report.get(current_language, {}).get("missing", []),
+            "asset_version": app.config["ASSET_VERSION"],
             "plural_suffix": plural_suffix,
             "t": translate,
             "csrf_token": generate_csrf_token,
