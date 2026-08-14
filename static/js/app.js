@@ -1051,8 +1051,13 @@ function initShowcaseMarquee() {
     }
 
     const firstGroup = groups[0];
-    const loopWidth = () => firstGroup.getBoundingClientRect().width || 0;
-    const speedPxPerSecond = 110;
+    const getGroupGap = () => {
+        const styles = window.getComputedStyle(firstGroup);
+        const gap = parseFloat(styles.columnGap || styles.gap || "0");
+        return Number.isFinite(gap) ? gap : 0;
+    };
+
+    const speedPxPerSecond = 70;
 
     let offset = 0;
     let lastTimestamp = 0;
@@ -1065,11 +1070,14 @@ function initShowcaseMarquee() {
         const deltaSeconds = (timestamp - lastTimestamp) / 1000;
         lastTimestamp = timestamp;
 
-        const width = loopWidth();
+        const width = firstGroup.getBoundingClientRect().width || 0;
+        const gap = getGroupGap();
+        const resetOffset = -(width + gap);
+
         if (width > 0) {
             offset -= speedPxPerSecond * deltaSeconds;
 
-            if (offset <= -width) {
+            if (offset <= resetOffset) {
                 offset = 0;
             }
 
