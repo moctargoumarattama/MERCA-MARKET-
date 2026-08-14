@@ -2912,6 +2912,18 @@ main section[id],
     animation: showcase-scroll 28s linear infinite;
 }
 
+.showcase-marquee.is-static .showcase-track {
+    width: 100%;
+    animation: none;
+    transform: none;
+}
+
+.showcase-marquee.is-static .showcase-group {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
 .showcase-marquee:hover .showcase-track,
 .showcase-marquee:focus-within .showcase-track {
     animation-play-state: paused;

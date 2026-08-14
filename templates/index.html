@@ -184,78 +184,116 @@
     {% else %}
         <div class="showcase-kicker">{{ t('home.showcase.kicker') }}</div>
         {% if showcase_products %}
-            <div class="showcase-marquee" aria-label="{{ t('home.showcase.kicker') }}">
+            {% set has_scroll_loop = showcase_products|length > 3 %}
+            <div class="showcase-marquee {% if not has_scroll_loop %}is-static{% endif %}" aria-label="{{ t('home.showcase.kicker') }}">
                 <div class="showcase-track">
-                    <div class="showcase-group">
-                        {% for product in showcase_products %}
-                            <article class="showcase-card">
-                                <a class="showcase-link" href="{{ url_for('public.index', category=product.category_id) }}#products" aria-label="{{ t('home.showcase.open_category') }} {{ product.category_name or t('home.product.category_empty') }} - {{ product.name }}">
-                                    <div class="showcase-media">
-                                        {% if product.image %}
-                                            <img src="{{ url_for('static', filename='images/' + product.image) }}" alt="{{ product.name }}">
-                                        {% else %}
-                                            <div class="showcase-fallback">MF</div>
-                                        {% endif %}
-                                        <span class="showcase-badge">{{ product.category_name or t('home.product.category_empty') }}</span>
-                                    </div>
-                                    <div class="showcase-body">
-                                        <h3>{{ product.name }}</h3>
-                                        <div class="showcase-meta">
-                                            <strong>{{ "%.2f"|format(product.price) }} DH</strong>
-                                            <span>{{ t('home.showcase.open_category') }}</span>
+                    {% if has_scroll_loop %}
+                        <div class="showcase-group">
+                            {% for product in showcase_products %}
+                                <article class="showcase-card">
+                                    <a class="showcase-link" href="{{ url_for('public.index', category=product.category_id) }}#products" aria-label="{{ t('home.showcase.open_category') }} {{ product.category_name or t('home.product.category_empty') }} - {{ product.name }}">
+                                        <div class="showcase-media">
+                                            {% if product.image %}
+                                                <img src="{{ url_for('static', filename='images/' + product.image) }}" alt="{{ product.name }}">
+                                            {% else %}
+                                                <div class="showcase-fallback">MF</div>
+                                            {% endif %}
+                                            <span class="showcase-badge">{{ product.category_name or t('home.product.category_empty') }}</span>
                                         </div>
-                                    </div>
-                                </a>
-                                <button
-                                    type="button"
-                                    class="showcase-more"
-                                    data-show-description
-                                    data-product-name="{{ product.name|e }}"
-                                    data-product-description="{{ (product.description or t('home.product.no_description'))|e }}"
-                                    data-product-category="{{ (product.category_name or t('home.product.category_empty'))|e }}"
-                                    data-product-image="{{ (product.image or '')|e }}"
-                                >
-                                    {{ t('home.showcase.more') }}
-                                </button>
-                            </article>
-                        {% endfor %}
-                    </div>
-                    <div class="showcase-group" aria-hidden="true">
-                        {% for product in showcase_products %}
-                            <article class="showcase-card">
-                                <a class="showcase-link" href="{{ url_for('public.index', category=product.category_id) }}#products" aria-hidden="true" tabindex="-1">
-                                    <div class="showcase-media">
-                                        {% if product.image %}
-                                            <img src="{{ url_for('static', filename='images/' + product.image) }}" alt="">
-                                        {% else %}
-                                            <div class="showcase-fallback">MF</div>
-                                        {% endif %}
-                                        <span class="showcase-badge">{{ product.category_name or t('home.product.category_empty') }}</span>
-                                    </div>
-                                    <div class="showcase-body">
-                                        <h3>{{ product.name }}</h3>
-                                        <div class="showcase-meta">
-                                            <strong>{{ "%.2f"|format(product.price) }} DH</strong>
-                                            <span>{{ t('home.showcase.open_category') }}</span>
+                                        <div class="showcase-body">
+                                            <h3>{{ product.name }}</h3>
+                                            <div class="showcase-meta">
+                                                <strong>{{ "%.2f"|format(product.price) }} DH</strong>
+                                                <span>{{ t('home.showcase.open_category') }}</span>
+                                            </div>
                                         </div>
-                                    </div>
-                                </a>
-                                <button
-                                    type="button"
-                                    class="showcase-more"
-                                    data-show-description
-                                    data-product-name="{{ product.name|e }}"
-                                    data-product-description="{{ (product.description or t('home.product.no_description'))|e }}"
-                                    data-product-category="{{ (product.category_name or t('home.product.category_empty'))|e }}"
-                                    data-product-image="{{ (product.image or '')|e }}"
-                                    aria-hidden="true"
-                                    tabindex="-1"
-                                >
-                                    {{ t('home.showcase.more') }}
-                                </button>
-                            </article>
-                        {% endfor %}
-                    </div>
+                                    </a>
+                                    <button
+                                        type="button"
+                                        class="showcase-more"
+                                        data-show-description
+                                        data-product-name="{{ product.name|e }}"
+                                        data-product-description="{{ (product.description or t('home.product.no_description'))|e }}"
+                                        data-product-category="{{ (product.category_name or t('home.product.category_empty'))|e }}"
+                                        data-product-image="{{ (product.image or '')|e }}"
+                                    >
+                                        {{ t('home.showcase.more') }}
+                                    </button>
+                                </article>
+                            {% endfor %}
+                        </div>
+                        <div class="showcase-group" aria-hidden="true">
+                            {% for product in showcase_products %}
+                                <article class="showcase-card">
+                                    <a class="showcase-link" href="{{ url_for('public.index', category=product.category_id) }}#products" aria-hidden="true" tabindex="-1">
+                                        <div class="showcase-media">
+                                            {% if product.image %}
+                                                <img src="{{ url_for('static', filename='images/' + product.image) }}" alt="">
+                                            {% else %}
+                                                <div class="showcase-fallback">MF</div>
+                                            {% endif %}
+                                            <span class="showcase-badge">{{ product.category_name or t('home.product.category_empty') }}</span>
+                                        </div>
+                                        <div class="showcase-body">
+                                            <h3>{{ product.name }}</h3>
+                                            <div class="showcase-meta">
+                                                <strong>{{ "%.2f"|format(product.price) }} DH</strong>
+                                                <span>{{ t('home.showcase.open_category') }}</span>
+                                            </div>
+                                        </div>
+                                    </a>
+                                    <button
+                                        type="button"
+                                        class="showcase-more"
+                                        data-show-description
+                                        data-product-name="{{ product.name|e }}"
+                                        data-product-description="{{ (product.description or t('home.product.no_description'))|e }}"
+                                        data-product-category="{{ (product.category_name or t('home.product.category_empty'))|e }}"
+                                        data-product-image="{{ (product.image or '')|e }}"
+                                        aria-hidden="true"
+                                        tabindex="-1"
+                                    >
+                                        {{ t('home.showcase.more') }}
+                                    </button>
+                                </article>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="showcase-group showcase-group--single">
+                            {% for product in showcase_products %}
+                                <article class="showcase-card">
+                                    <a class="showcase-link" href="{{ url_for('public.index', category=product.category_id) }}#products" aria-label="{{ t('home.showcase.open_category') }} {{ product.category_name or t('home.product.category_empty') }} - {{ product.name }}">
+                                        <div class="showcase-media">
+                                            {% if product.image %}
+                                                <img src="{{ url_for('static', filename='images/' + product.image) }}" alt="{{ product.name }}">
+                                            {% else %}
+                                                <div class="showcase-fallback">MF</div>
+                                            {% endif %}
+                                            <span class="showcase-badge">{{ product.category_name or t('home.product.category_empty') }}</span>
+                                        </div>
+                                        <div class="showcase-body">
+                                            <h3>{{ product.name }}</h3>
+                                            <div class="showcase-meta">
+                                                <strong>{{ "%.2f"|format(product.price) }} DH</strong>
+                                                <span>{{ t('home.showcase.open_category') }}</span>
+                                            </div>
+                                        </div>
+                                    </a>
+                                    <button
+                                        type="button"
+                                        class="showcase-more"
+                                        data-show-description
+                                        data-product-name="{{ product.name|e }}"
+                                        data-product-description="{{ (product.description or t('home.product.no_description'))|e }}"
+                                        data-product-category="{{ (product.category_name or t('home.product.category_empty'))|e }}"
+                                        data-product-image="{{ (product.image or '')|e }}"
+                                    >
+                                        {{ t('home.showcase.more') }}
+                                    </button>
+                                </article>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         {% else %}
