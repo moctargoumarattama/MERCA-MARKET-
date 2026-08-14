@@ -2910,12 +2910,8 @@ main section[id],
 .showcase-track {
     display: flex;
     width: max-content;
-    animation: showcase-scroll 12s linear infinite;
-}
-
-.showcase-marquee:hover .showcase-track,
-.showcase-marquee:focus-within .showcase-track {
-    animation-play-state: paused;
+    will-change: transform;
+    transform: translate3d(0, 0, 0);
 }
 
 .showcase-group {
@@ -3042,18 +3038,9 @@ main section[id],
     background: rgba(245, 196, 0, 0.18);
 }
 
-@keyframes showcase-scroll {
-    from {
-        transform: translateX(0);
-    }
-    to {
-        transform: translateX(calc(-50% - (var(--showcase-gap) / 2)));
-    }
-}
-
 @media (prefers-reduced-motion: reduce) {
     .showcase-track {
-        animation: none;
+        transform: none;
     }
 }
 
