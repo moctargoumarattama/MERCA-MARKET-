@@ -2874,6 +2874,7 @@ main section[id],
 }
 
 .showcase-marquee {
+    --showcase-gap: 16px;
     position: relative;
     overflow: hidden;
     border-radius: 28px;
@@ -2909,7 +2910,7 @@ main section[id],
 .showcase-track {
     display: flex;
     width: max-content;
-    animation: showcase-scroll 28s linear infinite;
+    animation: showcase-scroll 12s linear infinite;
 }
 
 .showcase-marquee:hover .showcase-track,
@@ -2919,7 +2920,8 @@ main section[id],
 
 .showcase-group {
     display: flex;
-    gap: 16px;
+    gap: var(--showcase-gap);
+    flex-shrink: 0;
 }
 
 .showcase-card {
@@ -3045,7 +3047,7 @@ main section[id],
         transform: translateX(0);
     }
     to {
-        transform: translateX(-50%);
+        transform: translateX(calc(-50% - (var(--showcase-gap) / 2)));
     }
 }
 
