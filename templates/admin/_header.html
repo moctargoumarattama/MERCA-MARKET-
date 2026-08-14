@@ -52,6 +52,11 @@
                     {% include "_csrf_token.html" %}
                     <button type="submit" class="button-secondary logout-button">{{ t('admin.logout') }}</button>
                 </form>
+
+                <button type="button" class="pwa-install-button" data-pwa-install hidden>
+                    <img src="{{ url_for('static', filename='images/icon-192.png') }}" alt="">
+                    <span>{{ t('pwa.install') }}</span>
+                </button>
             </div>
         </nav>
     </div>
@@ -62,6 +67,7 @@
         "currentLanguage": current_lang,
         "uiStrings": ui_strings,
         "defaultUiStrings": default_ui_strings,
-        "translationMissingKeys": translation_missing_keys
+        "translationMissingKeys": translation_missing_keys,
+        "pwaServiceWorkerUrl": url_for('public.service_worker')
     } | tojson }}
 </script>

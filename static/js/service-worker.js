@@ -28,6 +28,15 @@ self.addEventListener("fetch", (event) => {
         return;
     }
 
+    const requestUrl = new URL(event.request.url);
+    const isAdminRequest = requestUrl.origin === self.location.origin
+        && requestUrl.pathname.startsWith("/admin");
+
+    if (isAdminRequest) {
+        event.respondWith(fetch(event.request));
+        return;
+    }
+
     if (event.request.mode === "navigate") {
         event.respondWith(
             fetch(event.request)
@@ -44,7 +53,7 @@ self.addEventListener("fetch", (event) => {
         return;
     }
 
-    if (new URL(event.request.url).origin === self.location.origin) {
+    if (requestUrl.origin === self.location.origin && !requestUrl.pathname.startsWith("/api/")) {
         event.respondWith(
             caches.match(event.request).then((cachedResponse) => cachedResponse || fetch(event.request))
         );

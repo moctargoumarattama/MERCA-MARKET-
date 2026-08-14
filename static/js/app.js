@@ -94,7 +94,8 @@ function bindPwaInstall() {
     }
 
     window.addEventListener("load", () => {
-        navigator.serviceWorker.register("/service-worker.js").catch((error) => {
+        const serviceWorkerUrl = getShopConfig().pwaServiceWorkerUrl || "/service-worker.js";
+        navigator.serviceWorker.register(serviceWorkerUrl).catch((error) => {
             console.warn("Unable to register the service worker:", error);
         });
     });
