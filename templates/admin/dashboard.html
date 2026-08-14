@@ -44,30 +44,33 @@
                         <span>{{ t('admin.stats.visible') }}</span>
                         <strong>{{ stats.active_product_count }}</strong>
                     </div>
-                    <div class="summary-card summary-card--compact">
-                        <span>{{ t('admin.stats.sold_out') }}</span>
-                        <strong>{{ stats.sold_out_count }}</strong>
-                    </div>
                 </div>
 
-                <nav class="admin-quick-nav">
-                    <a href="{{ url_for('admin.dashboard', panel='catalogue') }}">
-                        <strong>{{ t('admin.quick_catalogue') }}</strong>
-                        <small>{{ t('admin.quick_catalogue_sub') }}</small>
-                    </a>
-                    <a href="{{ url_for('admin.dashboard', panel='add-category') }}">
-                        <strong>{{ t('admin.quick_add_category') }}</strong>
-                        <small>{{ t('admin.quick_add_category_sub') }}</small>
-                    </a>
-                    <a href="{{ url_for('admin.dashboard', panel='products') }}">
-                        <strong>{{ t('admin.quick_products') }}</strong>
-                        <small>{{ t('admin.quick_products_sub') }}</small>
-                    </a>
-                    <a href="{{ url_for('admin.dashboard', panel='add-product') }}">
-                        <strong>{{ t('admin.quick_add_product') }}</strong>
-                        <small>{{ t('admin.quick_add_product_sub') }}</small>
-                    </a>
-                </nav>
+                <section class="admin-panel visits-panel">
+                    <div class="section-head section-head--center">
+                        <div>
+                            <span class="eyebrow">{{ t('admin.visits.kicker') }}</span>
+                            <h2>{{ t('admin.visits.title') }}</h2>
+                            <p class="section-subtitle">{{ t('admin.visits.subtitle') }}</p>
+                        </div>
+                    </div>
+
+                    {% if daily_visits %}
+                        <div class="visits-list">
+                            {% for visit in daily_visits %}
+                                <div class="visit-row">
+                                    <span>{{ visit.visit_date }}</span>
+                                    <strong>{{ visit.visitor_count }}</strong>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="empty-state empty-state--compact">
+                            <h3>{{ t('admin.visits.empty.title') }}</h3>
+                            <p>{{ t('admin.visits.empty.body') }}</p>
+                        </div>
+                    {% endif %}
+                </section>
             </section>
         {% elif panel == "catalogue" %}
             <section class="admin-panel admin-panel--wide">
@@ -77,8 +80,13 @@
                         <h1>{{ t('admin.catalogue.title') }}</h1>
                         <p class="section-subtitle">{{ t('admin.catalogue.subtitle') }}</p>
                     </div>
-                    <a class="button-secondary" href="{{ url_for('admin.dashboard', panel='add-category') }}">{{ t('admin.catalogue.add_category') }}</a>
                 </div>
+
+                <form method="post" action="{{ url_for('admin.add_category', panel='catalogue') }}" class="admin-form inline-form admin-inline-form">
+                    {% include "_csrf_token.html" %}
+                    <input name="name" placeholder="{{ t('admin.category.new_placeholder') }}" required>
+                    <button type="submit" class="button-primary">{{ t('admin.category.save') }}</button>
+                </form>
 
                 <div class="admin-category-list">
                     {% for category in categories %}
@@ -143,12 +151,23 @@
                                 {{ t('admin.category.edit_subtitle', count=selected_category.product_count) }}
                             </p>
                         </div>
-                        <a class="button-secondary" href="{{ url_for('admin.dashboard', panel='catalogue') }}">{{ t('admin.category.back') }}</a>
+                        <a class="button-secondary" href="{{ url_for('admin.dashboard', panel='products') }}">{{ t('admin.products.choose_category') }}</a>
                     </div>
 
-                    <div class="admin-products admin-products--rows">
+                    <div class="admin-realtime-search" data-admin-filter-root>
+                        <input
+                            type="search"
+                            data-admin-realtime-search
+                            placeholder="{{ t('admin.products.search_products') }}"
+                            aria-label="{{ t('admin.products.search_products') }}"
+                            autocomplete="off"
+                        >
+                        <p class="admin-filter-empty" data-admin-filter-empty hidden>{{ t('admin.products.no_search_results') }}</p>
+                    </div>
+
+                    <div class="admin-products admin-products--rows" data-admin-filter-list>
                         {% for product in category_products %}
-                            <article class="admin-product admin-product--compact">
+                            <article class="admin-product admin-product--compact" data-admin-filter-item data-admin-filter-text="{{ product.name }} {{ product.description }} {{ product.category_name }}">
                                 <div class="admin-product-media">
                                     {% if product.image %}
                                         <img src="{{ url_for('static', filename='images/' + product.image) }}" alt="{{ product.name }}">
@@ -186,9 +205,50 @@
                         {% endfor %}
                     </div>
                 {% else %}
-                    <div class="empty-state empty-state--compact">
-                        <h3>{{ t('admin.category.no_open_title') }}</h3>
-                        <p>{{ t('admin.category.no_open_body') }}</p>
+                    <div class="section-head">
+                        <div>
+                            <span class="eyebrow">{{ t('admin.menu.products') }}</span>
+                            <h1>{{ t('admin.products.choose_category') }}</h1>
+                            <p class="section-subtitle">{{ t('admin.products.choose_category_subtitle') }}</p>
+                        </div>
+                    </div>
+
+                    <div class="admin-realtime-search" data-admin-filter-root>
+                        <input
+                            type="search"
+                            data-admin-realtime-search
+                            placeholder="{{ t('admin.products.search_categories') }}"
+                            aria-label="{{ t('admin.products.search_categories') }}"
+                            autocomplete="off"
+                        >
+                        <p class="admin-filter-empty" data-admin-filter-empty hidden>{{ t('admin.products.no_search_results') }}</p>
+                    </div>
+
+                    <div class="admin-category-list" data-admin-filter-list>
+                        {% for category in categories %}
+                            <article class="admin-category-item" data-admin-filter-item data-admin-filter-text="{{ category.name }}">
+                                <a class="admin-category-link" href="{{ url_for('admin.dashboard', panel='products', category=category.id) }}">
+                                    <div class="admin-category-media">
+                                        {% if category.cover_image %}
+                                            <img src="{{ url_for('static', filename='images/' + category.cover_image) }}" alt="{{ category.name }}">
+                                        {% else %}
+                                            <div class="category-fallback">
+                                                <span>{{ category.name[:1] | upper }}</span>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="admin-category-body">
+                                        <strong class="admin-category-title">{{ category.name }}</strong>
+                                        <span class="admin-category-count">{{ category.product_count }} {{ t('common.product') if category.product_count == 1 else t('common.products') }}</span>
+                                    </div>
+                                </a>
+                            </article>
+                        {% else %}
+                            <div class="empty-state empty-state--compact">
+                                <h3>{{ t('admin.catalogue.empty.title') }}</h3>
+                                <p>{{ t('admin.catalogue.empty.body') }}</p>
+                            </div>
+                        {% endfor %}
                     </div>
                 {% endif %}
             </section>

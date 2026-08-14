@@ -1,6 +1,9 @@
 import os
+from datetime import date
+
 from flask import Flask, abort, g, render_template, request, session, url_for
 from werkzeug.exceptions import HTTPException
+from werkzeug.middleware.proxy_fix import ProxyFix
 from config import Config
 from i18n import (
     DEFAULT_LANGUAGE,
@@ -310,6 +313,8 @@ def validate_csrf_token(token: str | None) -> bool:
 def create_app():
     app = Flask(__name__, static_folder="static", template_folder="templates")
     app.config.from_object(Config)
+    if app.config["TRUSTED_PROXY_HOPS"] > 0:
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=app.config["TRUSTED_PROXY_HOPS"])
     # Keep the styled error pages active even when the app is launched in debug.
     app.config["PROPAGATE_EXCEPTIONS"] = False
     app.add_template_global(generate_csrf_token, "csrf_token")
@@ -331,6 +336,42 @@ def create_app():
             session["ui_lang"] = normalize_language(preferred or DEFAULT_LANGUAGE)
         else:
             session["ui_lang"] = normalize_language(current_language)
+
+    @app.before_request
+    def track_daily_visitor():
+        if request.method != "GET":
+            return
+        if request.blueprint == "admin":
+            return
+        if request.endpoint in (None, "static"):
+            return
+        if request.endpoint.startswith("public.api_"):
+            return
+        if request.endpoint == "public.service_worker":
+            return
+        if request.endpoint == "public.set_language":
+            return
+        if request.path.startswith("/static"):
+            return
+
+        today = date.today().isoformat()
+        session_key = f"visitor_seen_{today}"
+        if session.get(session_key):
+            return
+
+        from models.database import get_db
+
+        db = get_db()
+        db.execute(
+            """
+            INSERT INTO visitor_stats(visit_date, visitor_count) VALUES (?, 1)
+            ON CONFLICT(visit_date)
+            DO UPDATE SET visitor_count = visitor_count + 1
+            """,
+            (today,),
+        )
+        db.commit()
+        session[session_key] = True
 
     @app.before_request
     def validate_csrf():

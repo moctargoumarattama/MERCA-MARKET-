@@ -25,7 +25,9 @@
             <div class="nav-links">
                 <a href="{{ url_for('admin.dashboard', panel='overview') }}">{{ t('admin.menu.overview') }}</a>
                 <a href="{{ url_for('admin.dashboard', panel='catalogue') }}">{{ t('admin.menu.catalogue') }}</a>
-                <a href="{{ url_for('admin.dashboard', panel='add-category') }}">{{ t('admin.menu.add_category') }}</a>
+                {% if session.get('admin_logged_in') %}
+                    <a href="{{ url_for('admin.manage_admins') }}">{{ t('admin.menu.admins') }}</a>
+                {% endif %}
                 <a href="{{ url_for('admin.dashboard', panel='products') }}">{{ t('admin.menu.products') }}</a>
                 <a href="{{ url_for('admin.dashboard', panel='add-product') }}">{{ t('admin.menu.add_product') }}</a>
             </div>

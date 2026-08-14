@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#120a05">
     <meta name="description" content="{{ shop_name }} - {{ t('app.meta_description') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
+    <link rel="icon" href="{{ url_for('static', filename='images/icon-192.png') }}" type="image/png">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/icon-192.png') }}">
     <title>{% block title %}{{ shop_name }}{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css', v=asset_version) }}">
 </head>
@@ -56,6 +59,11 @@
                     <a class="nav-cart" href="{{ url_for('public.cart') }}">
                         {{ t('nav.cart') }} <span id="cart-count">0</span>
                     </a>
+
+                    <button type="button" class="pwa-install-button" data-pwa-install hidden>
+                        <img src="{{ url_for('static', filename='images/icon-192.png') }}" alt="">
+                        <span>{{ t('pwa.install') }}</span>
+                    </button>
                 </div>
             </nav>
         </div>
@@ -149,6 +157,8 @@
         "shopName": shop_name,
         "shopAddress": shop_address,
         "searchUrl": url_for('public.api_search'),
+        "checkoutUrl": url_for('public.api_checkout'),
+        "csrfToken": csrf_token(),
         "staticImagesUrl": url_for('static', filename='images/'),
         "productsUrl": url_for('public.index') ~ '#products',
         "indexUrl": url_for('public.index'),

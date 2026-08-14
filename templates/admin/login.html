@@ -46,8 +46,8 @@
                 {% endif %}
             {% endwith %}
 
-            <input name="username" placeholder="{{ t('admin.login.username') }}" required>
-            <input name="password" type="password" placeholder="{{ t('admin.login.password') }}" required>
+            <input name="username" placeholder="{{ t('admin.login.username') }}" autocomplete="username" required>
+            <input name="password" type="password" placeholder="{{ t('admin.login.password') }}" autocomplete="current-password" required>
             <button type="submit" class="button-primary">{{ t('admin.login.submit') }}</button>
             <a class="button-secondary" href="{{ url_for('public.index') }}">{{ t('admin.login.back') }}</a>
         </form>

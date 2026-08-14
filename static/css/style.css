@@ -1141,9 +1141,26 @@ textarea {
 }
 
 .admin-inline-form {
-    margin-top: 18px;
+    margin: 18px 0 22px;
+    padding: 12px;
+    border: 1px solid rgba(201, 175, 129, 0.22);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.7);
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
+    box-shadow: var(--shadow-sm);
+}
+
+.admin-inline-form input {
+    min-height: 46px;
+    border-radius: 12px;
+    border: 1px solid rgba(125, 139, 157, 0.2);
+}
+
+.admin-inline-form .button-primary {
+    min-height: 46px;
+    padding-inline: 22px;
+    border-radius: 12px;
 }
 
 .admin-panel--product-view {
@@ -1169,6 +1186,23 @@ textarea {
 .admin-products--rows {
     display: grid;
     gap: 12px;
+}
+
+.admin-realtime-search {
+    display: grid;
+    gap: 8px;
+    margin: 0 0 16px;
+}
+
+.admin-realtime-search input {
+    min-height: 48px;
+    border-radius: 14px;
+}
+
+.admin-filter-empty {
+    margin: 0;
+    color: var(--muted);
+    font-weight: 700;
 }
 
 .admin-product {
@@ -1351,6 +1385,45 @@ textarea {
     line-height: 1.55;
 }
 
+.visits-panel {
+    padding: 18px;
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+}
+
+.visits-panel .section-head {
+    margin-bottom: 0;
+}
+
+.visits-list {
+    display: grid;
+    gap: 8px;
+}
+
+.visit-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(16, 38, 58, 0.03);
+    border: 1px solid rgba(125, 139, 157, 0.1);
+    color: var(--text);
+}
+
+.visit-row span {
+    color: var(--muted);
+    font-size: 0.8rem;
+}
+
+.visit-row strong {
+    font-size: 1.06rem;
+    color: var(--accent-deep);
+}
+
 .admin-layout--single .admin-panel--wide {
     width: min(860px, 100%);
 }
@@ -1427,6 +1500,21 @@ textarea {
     border: 1px solid rgba(125, 139, 157, 0.18);
 }
 
+.admin-row--featured {
+    background: linear-gradient(135deg, rgba(245, 196, 0, 0.16), rgba(255, 255, 255, 0.92));
+    border-color: rgba(245, 196, 0, 0.28);
+}
+
+.admin-row small {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.7rem;
+    font-weight: 800;
+}
+
 .admin-row strong {
     display: block;
     font-size: 1.02rem;
@@ -1437,6 +1525,43 @@ textarea {
     color: var(--muted);
 }
 
+.admin-role-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 7px 10px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.admin-role-badge--primary {
+    background: rgba(245, 196, 0, 0.18);
+    color: #7a5408;
+}
+
+.admin-role-badge--secondary {
+    background: rgba(19, 66, 109, 0.1);
+    color: #12386c;
+}
+
+.admin-admin-form {
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(125, 139, 157, 0.18);
+    border-radius: 24px;
+    padding: 18px;
+}
+
+.admin-list--admins {
+    gap: 12px;
+}
+
+.admin-row--account {
+    align-items: start;
+}
+
 .admin-actions {
     display: flex;
     align-items: center;
@@ -1445,8 +1570,33 @@ textarea {
     justify-content: flex-end;
 }
 
+.admin-actions--compact {
+    justify-content: flex-end;
+}
+
 .admin-actions form {
     margin: 0;
+}
+
+.admin-inline-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 16px;
+    background: rgba(16, 32, 48, 0.02);
+    border: 1px solid rgba(125, 139, 157, 0.12);
+}
+
+.admin-inline-form input {
+    width: min(200px, 100%);
+}
+
+.button-danger {
+    background: rgba(185, 28, 28, 0.08);
+    color: var(--danger);
+    border: 1px solid rgba(185, 28, 28, 0.18);
 }
 
 .product-preview {
@@ -2094,6 +2244,30 @@ h3,
     color: #120a05;
     font-size: 0.76rem;
     font-weight: 900;
+}
+
+.pwa-install-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 11px 7px 7px;
+    border-radius: 999px;
+    background: #f5c400;
+    color: #120a05;
+    border: 1px solid rgba(245, 196, 0, 0.65);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.pwa-install-button[hidden] {
+    display: none;
+}
+
+.pwa-install-button img {
+    width: 28px;
+    height: 28px;
+    border-radius: 9px;
+    object-fit: cover;
+    background: #fff;
 }
 
 .nav-cta {
@@ -3330,6 +3504,11 @@ body.modal-open {
     }
 
     .nav-cart {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .pwa-install-button {
         width: 100%;
         justify-content: center;
     }

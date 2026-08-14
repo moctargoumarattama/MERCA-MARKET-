@@ -1,12 +1,22 @@
+import json
+import math
 import re
 
-from flask import Blueprint, jsonify, redirect, render_template, request, session, url_for
+from flask import Blueprint, current_app, jsonify, redirect, render_template, request, send_from_directory, session, url_for
 
 from i18n import normalize_language, safe_redirect_target, set_locale
 from models.database import get_db
 from security import rate_limit
 
 public_bp = Blueprint("public", __name__)
+
+
+@public_bp.route("/service-worker.js")
+def service_worker():
+    response = send_from_directory(current_app.static_folder, "js/service-worker.js")
+    response.headers["Service-Worker-Allowed"] = "/"
+    response.headers["Cache-Control"] = "no-cache"
+    return response
 
 
 def normalize_search_terms(value):
@@ -65,13 +75,16 @@ def load_category_details(db, category_id):
 def load_catalog_products(db, q="", category_id=None, limit=None):
     if q:
         fts_query = normalize_search_terms(q)
+        if not fts_query:
+            return []
+
         sql = """
             SELECT p.*, c.name AS category_name
-            FROM products_fts f
-            JOIN products p ON p.id = f.rowid
+            FROM products_fts
+            JOIN products p ON p.id = products_fts.rowid
             LEFT JOIN categories c ON c.id = p.category_id
             WHERE p.available = 1
-              AND f MATCH ?
+              AND products_fts MATCH ?
         """
         params = [fts_query]
 
@@ -110,6 +123,9 @@ def load_catalog_products(db, q="", category_id=None, limit=None):
 
 def search_categories(db, query, limit=6):
     fts_query = normalize_search_terms(query)
+    if not fts_query:
+        return []
+
     like = f"%{query}%"
 
     return db.execute(
@@ -132,17 +148,17 @@ def search_categories(db, query, limit=6):
         WHERE (
             EXISTS (
                 SELECT 1
-                FROM categories_fts f
-                WHERE f.rowid = c.id
-                  AND f MATCH ?
+                                FROM categories_fts
+                                WHERE categories_fts.rowid = c.id
+                                    AND categories_fts MATCH ?
             )
             OR EXISTS (
                 SELECT 1
-                FROM products_fts f
-                JOIN products p2 ON p2.id = f.rowid
+                                FROM products_fts
+                                JOIN products p2 ON p2.id = products_fts.rowid
                 WHERE p2.category_id = c.id
                   AND p2.available = 1
-                  AND f MATCH ?
+                                    AND products_fts MATCH ?
             )
             OR c.name LIKE ?
         )
@@ -156,20 +172,90 @@ def search_categories(db, query, limit=6):
 
 def search_products(db, query, limit=12):
     fts_query = normalize_search_terms(query)
+    if not fts_query:
+        return []
+
     return db.execute(
         """
         SELECT p.id, p.name, p.description, p.price, p.image, p.stock,
                p.category_id, c.name AS category_name
-        FROM products_fts f
-        JOIN products p ON p.id = f.rowid
+        FROM products_fts
+        JOIN products p ON p.id = products_fts.rowid
         LEFT JOIN categories c ON c.id = p.category_id
         WHERE p.available = 1
-          AND f MATCH ?
+          AND products_fts MATCH ?
         ORDER BY p.id DESC
         LIMIT ?
         """,
         (fts_query, limit),
     ).fetchall()
+
+
+@public_bp.route("/api/checkout", methods=["POST"])
+@rate_limit(limit=10, window_seconds=60)
+def api_checkout():
+    try:
+        requested_items = json.loads(request.form.get("items", "[]"))
+    except (TypeError, json.JSONDecodeError):
+        requested_items = []
+
+    if not isinstance(requested_items, list):
+        requested_items = []
+
+    quantities = {}
+    for item in requested_items:
+        if not isinstance(item, dict):
+            continue
+
+        try:
+            product_id = int(item.get("id"))
+            quantity = int(item.get("quantity"))
+        except (TypeError, ValueError):
+            continue
+
+        if product_id <= 0 or quantity <= 0:
+            continue
+
+        quantities[product_id] = quantities.get(product_id, 0) + quantity
+
+    if not quantities:
+        return jsonify({"items": [], "total": 0})
+
+    placeholders = ", ".join("?" for _ in quantities)
+    db = get_db()
+    rows = db.execute(
+        f"""
+        SELECT id, name, price, stock
+        FROM products
+        WHERE available = 1 AND id IN ({placeholders})
+        """,
+        tuple(quantities),
+    ).fetchall()
+    products = {row["id"]: row for row in rows}
+    validated_items = []
+    total = 0.0
+
+    for product_id, requested_quantity in quantities.items():
+        product = products.get(product_id)
+        if product is None:
+            continue
+
+        price = float(product["price"])
+        if not math.isfinite(price) or price < 0:
+            continue
+
+        quantity = requested_quantity
+        if product["stock"] is not None:
+            quantity = min(quantity, max(int(product["stock"]), 0))
+        if quantity <= 0:
+            continue
+
+        validated_items.append(
+            {"name": product["name"], "price": price, "quantity": quantity}
+        )
+        total += price * quantity
+
+    return jsonify({"items": validated_items, "total": total})
 
 
 @public_bp.route("/")

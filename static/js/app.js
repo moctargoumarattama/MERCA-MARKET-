@@ -23,6 +23,7 @@ const DEFAULT_UI_STRINGS = {
     "js.cart.empty_already": "Votre panier est deja vide.",
     "js.cart.clear_confirm": "Vider le panier ?",
     "js.cart.cleared": "Panier vide.",
+    "js.cart.checkout_unavailable": "La commande n'a pas pu etre verifiee. Reessayez dans un instant.",
     "js.cart.checkout_intro": "Bonjour {shop_name}, je souhaite passer cette commande :",
     "js.cart.total": "Total : {total}",
     "js.cart.name": "Nom : {name}",
@@ -58,6 +59,7 @@ const quickReturnState = {
 };
 let shopConfigCache = null;
 let translationWarningsLogged = false;
+let deferredInstallPrompt = null;
 
 function getShopConfig() {
     if (shopConfigCache) {
@@ -82,6 +84,47 @@ function getShopConfig() {
 function getCurrentLanguage() {
     const config = getShopConfig();
     return String(config.currentLanguage || document.documentElement.lang || "fr").toLowerCase();
+}
+
+function bindPwaInstall() {
+    const installButton = document.querySelector("[data-pwa-install]");
+
+    if (!("serviceWorker" in navigator)) {
+        return;
+    }
+
+    window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/service-worker.js").catch((error) => {
+            console.warn("Unable to register the service worker:", error);
+        });
+    });
+
+    window.addEventListener("beforeinstallprompt", (event) => {
+        event.preventDefault();
+        deferredInstallPrompt = event;
+
+        if (installButton) {
+            installButton.hidden = false;
+        }
+    });
+
+    installButton?.addEventListener("click", async () => {
+        if (!deferredInstallPrompt) {
+            return;
+        }
+
+        deferredInstallPrompt.prompt();
+        await deferredInstallPrompt.userChoice;
+        deferredInstallPrompt = null;
+        installButton.hidden = true;
+    });
+
+    window.addEventListener("appinstalled", () => {
+        deferredInstallPrompt = null;
+        if (installButton) {
+            installButton.hidden = true;
+        }
+    });
 }
 
 function formatTemplate(template, params = {}) {
@@ -652,7 +695,7 @@ function bindCustomerFields() {
     }
 }
 
-function sendOrderToWhatsApp() {
+async function sendOrderToWhatsApp() {
     const cart = getCart();
 
     if (!cart.length) {
@@ -673,16 +716,42 @@ function sendOrderToWhatsApp() {
         localStorage.setItem(CUSTOMER_ADDRESS_KEY, address);
     }
 
-    let total = 0;
+    let order;
+
+    try {
+        const response = await fetch(getShopConfig().checkoutUrl || "/api/checkout", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+            body: new URLSearchParams({
+                items: JSON.stringify(cart.map((item) => ({ id: item.id, quantity: item.quantity }))),
+                _csrf_token: getShopConfig().csrfToken || "",
+            }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`Checkout validation failed: ${response.status}`);
+        }
+
+        order = await response.json();
+    } catch (error) {
+        console.warn("Unable to validate the order:", error);
+        notify(t("js.cart.checkout_unavailable"), "error");
+        return;
+    }
+
+    if (!Array.isArray(order.items) || order.items.length === 0) {
+        notify(t("js.cart.empty"), "error");
+        return;
+    }
+
     const lines = [t("js.cart.checkout_intro", { shop_name: shopName }), ""];
 
-    cart.forEach((item) => {
+    order.items.forEach((item) => {
         const lineTotal = item.price * item.quantity;
-        total += lineTotal;
         lines.push(`- ${item.name} x ${item.quantity} : ${formatCurrency(lineTotal)}`);
     });
 
-    lines.push("", t("js.cart.total", { total: formatCurrency(total) }));
+    lines.push("", t("js.cart.total", { total: formatCurrency(order.total) }));
 
     if (name) {
         lines.push("", t("js.cart.name", { name }));
@@ -733,6 +802,34 @@ function toggleMobileMenu() {
 
 function closeMobileMenu() {
     setMobileMenuState(false);
+}
+
+function bindAdminRealtimeFilter(root) {
+    const input = root.querySelector("[data-admin-realtime-search]");
+    const emptyState = root.querySelector("[data-admin-filter-empty]");
+    const list = root.parentElement?.querySelector("[data-admin-filter-list]");
+
+    if (!input || !list) {
+        return;
+    }
+
+    const items = Array.from(list.querySelectorAll("[data-admin-filter-item]"));
+
+    input.addEventListener("input", () => {
+        const query = normalizeSearchQuery(input.value).toLocaleLowerCase(getCurrentLanguage());
+        let visibleCount = 0;
+
+        items.forEach((item) => {
+            const text = String(item.dataset.adminFilterText || "").toLocaleLowerCase(getCurrentLanguage());
+            const matches = !query || text.includes(query);
+            item.hidden = !matches;
+            visibleCount += Number(matches);
+        });
+
+        if (emptyState) {
+            emptyState.hidden = visibleCount > 0 || !query;
+        }
+    });
 }
 
 function clamp(value, min, max) {
@@ -1035,6 +1132,7 @@ function bindProductModal() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+    bindPwaInstall();
     updateCartCount();
     renderCart();
     bindCustomerFields();
@@ -1043,6 +1141,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.querySelectorAll("[data-live-search-root]").forEach((root) => {
         bindLiveSearch(root);
+    });
+
+    document.querySelectorAll("[data-admin-filter-root]").forEach((root) => {
+        bindAdminRealtimeFilter(root);
     });
 
     document.addEventListener("click", (event) => {

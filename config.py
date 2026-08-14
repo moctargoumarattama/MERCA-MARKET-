@@ -40,6 +40,7 @@ class Config:
     # Only mark cookies as secure when running in production (HTTPS)
     SESSION_COOKIE_SECURE = IS_PRODUCTION
     SESSION_COOKIE_SAMESITE = "Lax"
+    TRUSTED_PROXY_HOPS = int(os.environ.get("TRUSTED_PROXY_HOPS", "0"))
     ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
     # No default admin password hash allowed — must be provided via environment
     ADMIN_PASSWORD_HASH = os.environ.get("ADMIN_PASSWORD_HASH")

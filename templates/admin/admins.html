@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="{{ current_lang }}" dir="{{ text_direction }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>{{ shop_name }} | {{ t('admin.admins.title') }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="page-shell">
+    {% include "admin/_header.html" %}
+
+    <main class="section admin-layout admin-layout--single">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-stack">
+                    {% for category, message in messages %}
+                        <div class="flash {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <section class="admin-panel admin-panel--wide">
+            <div class="section-head">
+                <div>
+                    <span class="eyebrow">{{ t('admin.admins.kicker') }}</span>
+                    <h1>{{ t('admin.admins.title') }}</h1>
+                    <p class="section-subtitle">{{ t('admin.admins.subtitle') }}</p>
+                </div>
+            </div>
+
+            {% if can_manage_admins %}
+                <form method="post" action="{{ url_for('admin.manage_admins') }}" class="admin-form admin-admin-form">
+                    {% include "_csrf_token.html" %}
+                    <input type="hidden" name="action" value="create">
+                    <input type="text" name="username" placeholder="{{ t('admin.admins.username') }}" autocomplete="username" required>
+                    <input type="password" name="password" placeholder="{{ t('admin.admins.password') }}" autocomplete="new-password" required>
+                    <button type="submit" class="button-primary">{{ t('admin.admins.submit') }}</button>
+                </form>
+            {% else %}
+                <div class="empty-state empty-state--compact">
+                    <h3>{{ t('flash.admin_access_denied') }}</h3>
+                    <p>{{ t('admin.admins.subtitle') }}</p>
+                </div>
+            {% endif %}
+
+            <div class="admin-list admin-list--admins">
+                <div class="admin-row admin-row--featured">
+                    <div>
+                        <small>{{ t('admin.admins.primary_label') }}</small>
+                        <strong>{{ primary_admin }}</strong>
+                    </div>
+                    <span class="admin-role-badge admin-role-badge--primary">{{ t('admin.admins.primary_label') }}</span>
+                </div>
+
+                {% if secondary_admins %}
+                    {% for admin in secondary_admins %}
+                        <div class="admin-row admin-row--account">
+                            <div>
+                                <small>{{ t('admin.admins.secondary_label') }}</small>
+                                <strong>{{ admin.username }}</strong>
+                            </div>
+                            <div class="admin-actions admin-actions--compact">
+                                <span class="admin-role-badge admin-role-badge--secondary">{{ t('admin.admins.secondary_label') }}</span>
+                                {% if can_manage_admins %}
+                                    <form method="post" action="{{ url_for('admin.manage_admins') }}" onsubmit="return confirm('{{ t('admin.admins.confirm_delete') }}');">
+                                        {% include "_csrf_token.html" %}
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="username" value="{{ admin.username }}">
+                                        <button type="submit" class="button-secondary button-danger">{{ t('admin.admins.delete') }}</button>
+                                    </form>
+                                    <form method="post" action="{{ url_for('admin.manage_admins') }}" class="admin-inline-form">
+                                        {% include "_csrf_token.html" %}
+                                        <input type="hidden" name="action" value="update">
+                                        <input type="hidden" name="username" value="{{ admin.username }}">
+                                        <input type="text" name="new_username" value="{{ admin.username }}" required>
+                                        <input type="password" name="password" placeholder="{{ t('admin.admins.new_password') }}" aria-label="{{ t('admin.admins.new_password') }}">
+                                        <button type="submit" class="button-primary">{{ t('admin.admins.update') }}</button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state empty-state--compact">
+                        <h3>{{ t('admin.admins.empty.title') }}</h3>
+                        <p>{{ t('admin.admins.empty.body') }}</p>
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+    </main>
+</div>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

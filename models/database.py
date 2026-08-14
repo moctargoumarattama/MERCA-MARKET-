@@ -11,6 +11,7 @@ def get_db():
             detect_types=sqlite3.PARSE_DECLTYPES,
         )
         g.db.row_factory = sqlite3.Row
+        g.db.execute("PRAGMA foreign_keys = ON")
     return g.db
 
 
@@ -52,6 +53,19 @@ def init_db():
             available INTEGER NOT NULL DEFAULT 1,
             stock INTEGER DEFAULT NULL,
             FOREIGN KEY(category_id) REFERENCES categories(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS admin_accounts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_DATE,
+            is_active INTEGER NOT NULL DEFAULT 1
+        );
+
+        CREATE TABLE IF NOT EXISTS visitor_stats (
+            visit_date TEXT PRIMARY KEY,
+            visitor_count INTEGER NOT NULL DEFAULT 0
         );
 
         CREATE INDEX IF NOT EXISTS idx_products_available ON products(available);
@@ -133,6 +147,8 @@ def init_db():
     )
 
     _ensure_column(conn, "products", "stock", "INTEGER DEFAULT NULL")
+    _ensure_column(conn, "admin_accounts", "created_at", "TEXT NOT NULL DEFAULT CURRENT_DATE")
+    _ensure_column(conn, "admin_accounts", "is_active", "INTEGER NOT NULL DEFAULT 1")
 
     count = conn.execute("SELECT COUNT(*) FROM categories").fetchone()[0]
     if count == 0:

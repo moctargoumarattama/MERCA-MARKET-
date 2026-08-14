@@ -1,4 +1,5 @@
 import sqlite3
+import math
 from functools import wraps
 from pathlib import Path
 from uuid import uuid4
@@ -15,7 +16,7 @@ from flask import (
 )
 import os
 from time import time
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
 from security import rate_limit
@@ -24,6 +25,29 @@ from i18n import translate as t
 from models.database import get_db
 
 admin_bp = Blueprint("admin", __name__)
+
+
+def verify_admin_credentials(username, password):
+    username = (username or "").strip()
+    password = password or ""
+
+    if not username or not password:
+        return False
+
+    if username == current_app.config["ADMIN_USERNAME"]:
+        return check_password_hash(current_app.config["ADMIN_PASSWORD_HASH"], password)
+
+    db = get_db()
+    row = db.execute(
+        "SELECT password_hash FROM admin_accounts WHERE username = ? AND is_active = 1",
+        (username,),
+    ).fetchone()
+    if row is None:
+        return False
+
+    return check_password_hash(row["password_hash"], password)
+
+
 ALLOWED_ADMIN_IMAGE_FORMATS = {
     "jpeg",
     "png",
@@ -63,6 +87,20 @@ def _parse_stock(raw_value):
         raise ValueError(t("validation.stock_integer")) from exc
 
     return max(stock, 0)
+
+
+def _parse_price(raw_value):
+    value = (raw_value or "").strip()
+
+    try:
+        price = float(value)
+    except ValueError:
+        return None
+
+    if not math.isfinite(price) or price < 0:
+        return None
+
+    return price
 
 
 def _determine_image_format(stream) -> str | None:
@@ -214,9 +252,7 @@ def login():
         username = request.form.get("username", "")
         password = request.form.get("password", "")
 
-        if username == current_app.config["ADMIN_USERNAME"] and check_password_hash(
-            current_app.config["ADMIN_PASSWORD_HASH"], password
-        ):
+        if verify_admin_credentials(username, password):
             # Prevent session fixation: clear existing session and create a fresh one
             preserved_lang = session.get("ui_lang")
             session.clear()
@@ -225,12 +261,143 @@ def login():
             # fresh CSRF token and admin flag
             session["_csrf_token"] = os.urandom(32).hex()
             session["admin_logged_in"] = True
+            session["admin_username"] = username
+            session["admin_is_primary"] = username == current_app.config["ADMIN_USERNAME"]
             session["admin_login_at"] = int(time())
             return redirect(url_for("admin.dashboard"))
 
         flash(t("flash.login_invalid"), "error")
 
     return render_template("admin/login.html")
+
+
+@admin_bp.route("/admins", methods=["GET", "POST"])
+@rate_limit(limit=20, window_seconds=60)
+@login_required
+def manage_admins():
+    db = get_db()
+    is_primary = bool(session.get("admin_is_primary"))
+    primary_admin = current_app.config["ADMIN_USERNAME"]
+
+    if request.method == "POST":
+        if not is_primary:
+            flash(t("flash.admin_access_denied"), "info")
+            return redirect(url_for("admin.manage_admins"))
+
+        action = request.form.get("action", "create").strip()
+
+        if action == "create":
+            username = request.form.get("username", "").strip()
+            password = request.form.get("password", "")
+
+            if not username or not password:
+                flash(t("flash.admin_credentials_required"), "error")
+                return redirect(url_for("admin.manage_admins"))
+
+            if username == primary_admin:
+                flash(t("flash.admin_already_exists"), "error")
+                return redirect(url_for("admin.manage_admins"))
+
+            try:
+                db.execute(
+                    "INSERT INTO admin_accounts(username, password_hash) VALUES (?, ?)",
+                    (username, generate_password_hash(password)),
+                )
+                db.commit()
+                flash(t("flash.admin_created"), "success")
+            except sqlite3.IntegrityError:
+                flash(t("flash.admin_exists"), "error")
+
+            return redirect(url_for("admin.manage_admins"))
+
+        if action == "delete":
+            target_username = request.form.get("username", "").strip()
+            if not target_username:
+                flash(t("flash.admin_credentials_required"), "error")
+                return redirect(url_for("admin.manage_admins"))
+
+            if target_username == primary_admin:
+                flash(t("flash.admin_primary_cannot_be_deleted"), "error")
+                return redirect(url_for("admin.manage_admins"))
+
+            deleted = db.execute(
+                "DELETE FROM admin_accounts WHERE username = ? AND is_active = 1",
+                (target_username,),
+            )
+            db.commit()
+
+            if deleted.rowcount:
+                flash(t("flash.admin_deleted"), "success")
+            else:
+                flash(t("flash.admin_not_found"), "error")
+
+            return redirect(url_for("admin.manage_admins"))
+
+        if action == "update":
+            target_username = request.form.get("username", "").strip()
+            new_username = request.form.get("new_username", "").strip()
+            password = request.form.get("password", "")
+
+            if not target_username:
+                flash(t("flash.admin_credentials_required"), "error")
+                return redirect(url_for("admin.manage_admins"))
+
+            if target_username == primary_admin:
+                flash(t("flash.admin_primary_cannot_be_deleted"), "error")
+                return redirect(url_for("admin.manage_admins"))
+
+            row = db.execute(
+                "SELECT username FROM admin_accounts WHERE username = ? AND is_active = 1",
+                (target_username,),
+            ).fetchone()
+            if row is None:
+                flash(t("flash.admin_not_found"), "error")
+                return redirect(url_for("admin.manage_admins"))
+
+            if not new_username:
+                new_username = target_username
+
+            if new_username == primary_admin:
+                flash(t("flash.admin_already_exists"), "error")
+                return redirect(url_for("admin.manage_admins"))
+
+            if new_username and new_username != target_username:
+                existing = db.execute(
+                    "SELECT 1 FROM admin_accounts WHERE username = ? AND username != ? AND is_active = 1",
+                    (new_username, target_username),
+                ).fetchone()
+                if existing:
+                    flash(t("flash.admin_exists"), "error")
+                    return redirect(url_for("admin.manage_admins"))
+
+            if password:
+                db.execute(
+                    "UPDATE admin_accounts SET username = ?, password_hash = ? WHERE username = ? AND is_active = 1",
+                    (new_username, generate_password_hash(password), target_username),
+                )
+            else:
+                db.execute(
+                    "UPDATE admin_accounts SET username = ? WHERE username = ? AND is_active = 1",
+                    (new_username, target_username),
+                )
+
+            db.commit()
+            flash(t("flash.admin_updated"), "success")
+            return redirect(url_for("admin.manage_admins"))
+
+    secondary_admins = db.execute(
+        "SELECT username FROM admin_accounts WHERE is_active = 1 ORDER BY username"
+    ).fetchall()
+
+    if not is_primary:
+        flash(t("flash.admin_access_denied"), "info")
+
+    return render_template(
+        "admin/admins.html",
+        primary_admin=primary_admin,
+        secondary_admins=secondary_admins,
+        can_manage_admins=is_primary,
+    )
 
 
 @admin_bp.route("/logout", methods=["POST"])
@@ -246,25 +413,15 @@ def logout():
 def dashboard():
     db = get_db()
     panel = normalize_admin_panel(request.args.get("panel"))
+    if panel == "add-category":
+        panel = "catalogue"
     selected_category_id = request.args.get("category", type=int)
     categories = load_admin_categories(db)
-
-    if panel == "products" and selected_category_id is None:
-        stored_category_id = session.get("admin_selected_category_id")
-        if stored_category_id is not None:
-            selected_category_id = int(stored_category_id)
-        elif categories:
-            selected_category_id = categories[0]["id"]
 
     if selected_category_id is not None:
         session["admin_selected_category_id"] = selected_category_id
 
     selected_category = load_admin_category(db, selected_category_id) if selected_category_id else None
-
-    if panel == "products" and selected_category is None and categories:
-        selected_category_id = categories[0]["id"]
-        selected_category = load_admin_category(db, selected_category_id)
-        session["admin_selected_category_id"] = selected_category_id
 
     category_products = load_admin_category_products(db, selected_category_id) if selected_category_id else []
     stats = db.execute(
@@ -276,6 +433,17 @@ def dashboard():
             (SELECT COUNT(*) FROM products WHERE available = 1 AND stock = 0) AS sold_out_count
         """
     ).fetchone()
+    today = db.execute(
+        "SELECT visitor_count FROM visitor_stats WHERE visit_date = date('now')"
+    ).fetchone()
+    daily_visits = db.execute(
+        """
+        SELECT visit_date, visitor_count
+        FROM visitor_stats
+        WHERE visit_date >= date('now', '-6 days')
+        ORDER BY visit_date ASC
+        """
+    ).fetchall()
 
     return render_template(
         "admin/dashboard.html",
@@ -285,6 +453,8 @@ def dashboard():
         selected_category_id=selected_category_id,
         panel=panel,
         stats=stats,
+        today_visitor_count=(today["visitor_count"] if today else 0),
+        daily_visits=daily_visits,
     )
 
 
@@ -387,7 +557,7 @@ def delete_category(category_id):
 def add_product():
     name = request.form.get("name", "").strip()
     description = request.form.get("description", "").strip()
-    price = request.form.get("price", type=float)
+    price = _parse_price(request.form.get("price", ""))
     category_id = request.form.get("category_id", type=int)
     available = 1 if request.form.get("available") else 0
     stock_raw = request.form.get("stock", "")
@@ -401,16 +571,17 @@ def add_product():
         flash(t("flash.product_category_required"), "error")
         return redirect(url_for("admin.dashboard", panel=panel))
 
+    db = get_db()
+    category = db.execute("SELECT 1 FROM categories WHERE id = ?", (category_id,)).fetchone()
+    if category is None:
+        flash(t("flash.product_category_required"), "error")
+        return redirect(url_for("admin.dashboard", panel=panel))
+
     try:
         stock = _parse_stock(stock_raw)
         image_name = _save_product_image(request.files.get("image"))
     except ValueError as exc:
         flash(str(exc), "error")
-        return redirect(url_for("admin.dashboard", panel=panel))
-
-    db = get_db()
-    if category_id is None:
-        flash(t("flash.product_category_required"), "error")
         return redirect(url_for("admin.dashboard", panel=panel))
 
     db.execute(
@@ -441,7 +612,7 @@ def edit_product(product_id):
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         description = request.form.get("description", "").strip()
-        price = request.form.get("price", type=float)
+        price = _parse_price(request.form.get("price", ""))
         category_id = request.form.get("category_id", type=int)
         available = 1 if request.form.get("available") else 0
         stock_raw = request.form.get("stock", "")
@@ -455,15 +626,16 @@ def edit_product(product_id):
             flash(t("flash.product_category_required"), "error")
             return redirect(url_for("admin.edit_product", product_id=product_id))
 
+        category = db.execute("SELECT 1 FROM categories WHERE id = ?", (category_id,)).fetchone()
+        if category is None:
+            flash(t("flash.product_category_required"), "error")
+            return redirect(url_for("admin.edit_product", product_id=product_id))
+
         try:
             stock = _parse_stock(stock_raw)
             image_name = _save_product_image(request.files.get("image"), image_name)
         except ValueError as exc:
             flash(str(exc), "error")
-            return redirect(url_for("admin.edit_product", product_id=product_id))
-
-        if category_id is None:
-            flash(t("flash.product_category_required"), "error")
             return redirect(url_for("admin.edit_product", product_id=product_id))
 
         db.execute(
