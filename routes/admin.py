@@ -353,7 +353,28 @@ def edit_category(category_id):
 @login_required
 def delete_category(category_id):
     db = get_db()
-    db.execute("UPDATE products SET category_id = NULL WHERE category_id = ?", (category_id,))
+    category = db.execute("SELECT id FROM categories WHERE id = ?", (category_id,)).fetchone()
+    if category is None:
+        flash(t("flash.category_not_found"), "error")
+        return redirect(url_for("admin.dashboard", panel="catalogue"))
+
+    fallback_category = db.execute(
+        "SELECT id FROM categories WHERE id != ? ORDER BY id LIMIT 1",
+        (category_id,),
+    ).fetchone()
+
+    if fallback_category is None:
+        product_count = db.execute("SELECT COUNT(*) FROM products WHERE category_id = ?", (category_id,)).fetchone()[0]
+        if product_count:
+            flash(t("flash.category_delete_requires_reassignment"), "error")
+            return redirect(url_for("admin.dashboard", panel="catalogue"))
+
+    if fallback_category is not None:
+        db.execute(
+            "UPDATE products SET category_id = ? WHERE category_id = ?",
+            (fallback_category["id"], category_id),
+        )
+
     db.execute("DELETE FROM categories WHERE id = ?", (category_id,))
     db.commit()
     flash(t("flash.category_deleted"), "success")
@@ -376,6 +397,10 @@ def add_product():
         flash(t("flash.product_name_price_required"), "error")
         return redirect(url_for("admin.dashboard", panel=panel))
 
+    if category_id is None:
+        flash(t("flash.product_category_required"), "error")
+        return redirect(url_for("admin.dashboard", panel=panel))
+
     try:
         stock = _parse_stock(stock_raw)
         image_name = _save_product_image(request.files.get("image"))
@@ -384,6 +409,10 @@ def add_product():
         return redirect(url_for("admin.dashboard", panel=panel))
 
     db = get_db()
+    if category_id is None:
+        flash(t("flash.product_category_required"), "error")
+        return redirect(url_for("admin.dashboard", panel=panel))
+
     db.execute(
         """
         INSERT INTO products(name, description, price, image, category_id, available, stock)
@@ -422,11 +451,19 @@ def edit_product(product_id):
             flash(t("flash.product_name_price_required"), "error")
             return redirect(url_for("admin.edit_product", product_id=product_id))
 
+        if category_id is None:
+            flash(t("flash.product_category_required"), "error")
+            return redirect(url_for("admin.edit_product", product_id=product_id))
+
         try:
             stock = _parse_stock(stock_raw)
             image_name = _save_product_image(request.files.get("image"), image_name)
         except ValueError as exc:
             flash(str(exc), "error")
+            return redirect(url_for("admin.edit_product", product_id=product_id))
+
+        if category_id is None:
+            flash(t("flash.product_category_required"), "error")
             return redirect(url_for("admin.edit_product", product_id=product_id))
 
         db.execute(

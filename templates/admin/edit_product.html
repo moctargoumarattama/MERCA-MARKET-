@@ -44,8 +44,8 @@
                     placeholder="{{ t('admin.product.stock_placeholder') }}"
                     value="{{ product.stock if product.stock is not none else '' }}"
                 >
-                <select name="category_id">
-                    <option value="" {% if not product.category_id %}selected{% endif %}>{{ t('admin.product.without_category') }}</option>
+                <select name="category_id" required>
+                    <option value="" disabled {% if not product.category_id %}selected{% endif %}>{{ t('admin.product.select_category') }}</option>
                     {% for category in categories %}
                         <option value="{{ category.id }}" {% if category.id == product.category_id %}selected{% endif %}>
                             {{ category.name }}
