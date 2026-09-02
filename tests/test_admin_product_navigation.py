@@ -59,6 +59,19 @@ class AdminProductNavigationTests(unittest.TestCase):
         self.assertIn("data-admin-filter-item", html)
         self.assertIn("Rechercher un produit dans ce rayon", html)
 
+    def test_add_product_form_uses_simple_weight_price_labels(self):
+        response = self.client.get("/admin/?panel=add-product")
+
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+        self.assertIn("Prix par poids", html)
+        self.assertIn("Ajouter une ligne", html)
+        self.assertIn("Poids : 100 g", html)
+        self.assertIn("Prix : 15 DH", html)
+        form_html = html.split('<form method="post" action="/admin/products/add?panel=add-product"', 1)[1]
+        form_html = form_html.split("</form>", 1)[0]
+        self.assertNotIn("admin.product.weight", form_html)
+
 
 if __name__ == "__main__":
     unittest.main()

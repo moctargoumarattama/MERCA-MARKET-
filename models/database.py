@@ -48,6 +48,7 @@ def init_db():
             name TEXT NOT NULL,
             description TEXT DEFAULT '',
             price REAL NOT NULL DEFAULT 0,
+            weight_options TEXT NOT NULL DEFAULT '[]',
             image TEXT DEFAULT '',
             category_id INTEGER,
             available INTEGER NOT NULL DEFAULT 1,
@@ -147,8 +148,10 @@ def init_db():
     )
 
     _ensure_column(conn, "products", "stock", "INTEGER DEFAULT NULL")
+    _ensure_column(conn, "products", "weight_options", "TEXT NOT NULL DEFAULT '[]'")
     _ensure_column(conn, "admin_accounts", "created_at", "TEXT NOT NULL DEFAULT CURRENT_DATE")
     _ensure_column(conn, "admin_accounts", "is_active", "INTEGER NOT NULL DEFAULT 1")
+    conn.execute("UPDATE products SET stock = NULL WHERE stock IS NOT NULL")
 
     count = conn.execute("SELECT COUNT(*) FROM categories").fetchone()[0]
     if count == 0:

@@ -1,0 +1,40 @@
+<div class="weight-options-editor" data-weight-options-editor>
+    <div class="weight-options-header">
+        <strong>Prix par poids</strong>
+        <button type="button" class="button-secondary" data-weight-option-add>
+            Ajouter une ligne
+        </button>
+    </div>
+
+    <small class="field-help">Exemple : 100 g avec son prix, puis 200 g avec son prix.</small>
+
+    <div class="weight-options-list" data-weight-option-list>
+        {% set options = form_weight_options if form_weight_options else [{'label': '', 'price': ''}] %}
+        {% for option in options %}
+            <div class="weight-option-row" data-weight-option-row>
+                <input
+                    name="weight_label"
+                    placeholder="Poids : 100 g"
+                    value="{{ option.label }}"
+                    autocomplete="off"
+                >
+                <input
+                    name="weight_price"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Prix : 15 DH"
+                    value="{% if option.price is defined and option.price != '' %}{{ '%.2f'|format(option.price) }}{% endif %}"
+                >
+                <button
+                    type="button"
+                    class="button-secondary weight-option-remove"
+                    data-weight-option-remove
+                    aria-label="Supprimer cette ligne"
+                >
+                    Supprimer
+                </button>
+            </div>
+        {% endfor %}
+    </div>
+</div>

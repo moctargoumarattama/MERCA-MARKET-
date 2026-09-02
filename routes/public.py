@@ -1,11 +1,18 @@
 import json
 import math
 import re
+from collections import OrderedDict
 
 from flask import Blueprint, current_app, jsonify, redirect, render_template, request, send_from_directory, session, url_for
 
 from i18n import normalize_language, safe_redirect_target, set_locale
 from models.database import get_db
+from models.product_options import (
+    find_weight_option,
+    get_product_weight_options,
+    normalize_weight_label,
+    product_display_price,
+)
 from security import rate_limit
 
 public_bp = Blueprint("public", __name__)
@@ -177,7 +184,7 @@ def search_products(db, query, limit=12):
 
     return db.execute(
         """
-        SELECT p.id, p.name, p.description, p.price, p.image, p.stock,
+        SELECT p.id, p.name, p.description, p.price, p.weight_options, p.image,
                p.category_id, c.name AS category_name
         FROM products_fts
         JOIN products p ON p.id = products_fts.rowid
@@ -191,6 +198,13 @@ def search_products(db, query, limit=12):
     ).fetchall()
 
 
+def serialize_product(row):
+    product = dict(row)
+    product["weight_options"] = get_product_weight_options(row)
+    product["display_price"] = product_display_price(row)
+    return product
+
+
 @public_bp.route("/api/checkout", methods=["POST"])
 @rate_limit(limit=10, window_seconds=60)
 def api_checkout():
@@ -202,7 +216,7 @@ def api_checkout():
     if not isinstance(requested_items, list):
         requested_items = []
 
-    quantities = {}
+    quantities = OrderedDict()
     for item in requested_items:
         if not isinstance(item, dict):
             continue
@@ -216,43 +230,60 @@ def api_checkout():
         if product_id <= 0 or quantity <= 0:
             continue
 
-        quantities[product_id] = quantities.get(product_id, 0) + quantity
+        weight_label = normalize_weight_label(item.get("weight_label") or item.get("weightLabel"))
+        key = (product_id, weight_label)
+        quantities[key] = quantities.get(key, 0) + quantity
 
     if not quantities:
         return jsonify({"items": [], "total": 0})
 
-    placeholders = ", ".join("?" for _ in quantities)
+    product_ids = list(dict.fromkeys(product_id for product_id, _ in quantities))
+    placeholders = ", ".join("?" for _ in product_ids)
     db = get_db()
     rows = db.execute(
         f"""
-        SELECT id, name, price, stock
+        SELECT id, name, price, weight_options
         FROM products
         WHERE available = 1 AND id IN ({placeholders})
         """,
-        tuple(quantities),
+        tuple(product_ids),
     ).fetchall()
     products = {row["id"]: row for row in rows}
     validated_items = []
     total = 0.0
 
-    for product_id, requested_quantity in quantities.items():
+    for (product_id, requested_weight_label), requested_quantity in quantities.items():
         product = products.get(product_id)
         if product is None:
             continue
 
-        price = float(product["price"])
+        weight_label = ""
+        weight_options = get_product_weight_options(product)
+
+        if weight_options:
+            selected_option = find_weight_option(weight_options, requested_weight_label)
+            if selected_option is None and not requested_weight_label:
+                selected_option = weight_options[0]
+            if selected_option is None:
+                continue
+
+            price = float(selected_option["price"])
+            weight_label = selected_option["label"]
+        else:
+            price = float(product["price"])
+
         if not math.isfinite(price) or price < 0:
             continue
 
         quantity = requested_quantity
-        if product["stock"] is not None:
-            quantity = min(quantity, max(int(product["stock"]), 0))
         if quantity <= 0:
             continue
 
-        validated_items.append(
-            {"name": product["name"], "price": price, "quantity": quantity}
-        )
+        item_payload = {"name": product["name"], "price": price, "quantity": quantity}
+        if weight_label:
+            item_payload["weight_label"] = weight_label
+
+        validated_items.append(item_payload)
         total += price * quantity
 
     return jsonify({"items": validated_items, "total": total})
@@ -304,7 +335,7 @@ def api_products():
     db = get_db()
     rows = db.execute(
         """
-        SELECT p.id, p.name, p.description, p.price, p.image, p.stock,
+        SELECT p.id, p.name, p.description, p.price, p.weight_options, p.image,
                p.category_id, c.name AS category_name
         FROM products p
         LEFT JOIN categories c ON c.id = p.category_id
@@ -313,7 +344,7 @@ def api_products():
         """
     ).fetchall()
 
-    return jsonify([dict(row) for row in rows])
+    return jsonify([serialize_product(row) for row in rows])
 
 
 @public_bp.route("/api/search")
@@ -331,6 +362,6 @@ def api_search():
         {
             "query": query,
             "categories": [dict(row) for row in categories],
-            "products": [dict(row) for row in products],
+            "products": [serialize_product(row) for row in products],
         }
     )

@@ -14,9 +14,7 @@ const DEFAULT_UI_STRINGS = {
     "js.search.categories": "Categories",
     "js.search.products": "Produits",
     "js.search.category_count": "{count} produit{suffix}",
-    "js.search.stock_available": "{count} en stock",
     "js.cart.max_quantity": "Quantite maximale atteinte pour ce produit.",
-    "js.cart.out_of_stock": "Ce produit est en rupture de stock.",
     "js.cart.added": "{name} a ete ajoute au panier.",
     "js.cart.removed": "Produit supprime du panier.",
     "js.cart.empty": "Votre panier est vide.",
@@ -30,9 +28,11 @@ const DEFAULT_UI_STRINGS = {
     "js.cart.address": "Adresse : {address}",
     "js.cart.confirm": "Merci de confirmer ma commande.",
     "js.cart.unit": "unite",
-    "js.cart.stock_available_short": "{count} dispo",
-    "js.cart.stock_out": "Rupture",
     "js.cart.explore": "Explorer le catalogue",
+    "home.product.weight_select": "Choisir un poids",
+    "admin.product.weight_label_placeholder": "Poids : 100 g",
+    "admin.product.weight_price_placeholder": "Prix : 15 DH",
+    "admin.product.remove_weight_option": "Supprimer",
     "js.menu.open": "Ouvrir le menu",
     "js.menu.close": "Fermer le menu",
     "js.quick_return.products": "Produits",
@@ -41,7 +41,6 @@ const DEFAULT_UI_STRINGS = {
     "js.modal.no_description": "Aucune description disponible.",
     "js.modal.close": "Fermer",
     "home.product.add": "Ajouter au panier",
-    "home.product.out_of_stock": "Rupture",
     "home.product.category_empty": "Sans categorie",
     "cart.empty.title": "Votre panier est vide",
     "cart.empty.body": "Ajoutez des produits depuis le catalogue pour construire votre commande.",
@@ -182,13 +181,27 @@ function formatCurrency(value) {
     }
 }
 
-function normalizeStock(stock) {
-    if (stock === null || stock === undefined || stock === "") {
-        return null;
+function normalizeWeightLabel(label) {
+    return String(label || "").trim().replace(/\s+/g, " ");
+}
+
+function normalizeWeightOptions(options) {
+    if (!Array.isArray(options)) {
+        return [];
     }
 
-    const parsed = Number(stock);
-    return Number.isFinite(parsed) ? Math.max(0, Math.trunc(parsed)) : null;
+    return options
+        .map((option) => {
+            const label = normalizeWeightLabel(option?.label);
+            const price = Number(option?.price);
+
+            if (!label || !Number.isFinite(price) || price < 0) {
+                return null;
+            }
+
+            return { label, price };
+        })
+        .filter(Boolean);
 }
 
 function normalizeItem(item) {
@@ -197,7 +210,7 @@ function normalizeItem(item) {
         name: String(item.name || ""),
         price: Number(item.price) || 0,
         image: item.image || "",
-        stock: normalizeStock(item.stock),
+        weightLabel: normalizeWeightLabel(item.weightLabel || item.weight_label),
         quantity: Math.max(1, Number(item.quantity) || 1)
     };
 }
@@ -228,6 +241,67 @@ function buildStaticImageUrl(filename) {
     const normalizedName = String(filename).replace(/^\/+/, "");
 
     return `${normalizedBase}${encodeURIComponent(normalizedName)}`;
+}
+
+function getSelectedWeightDetails(root) {
+    const select = root?.querySelector("[data-product-weight-select]");
+
+    if (!select) {
+        return null;
+    }
+
+    const option = select.selectedOptions?.[0];
+    if (!option) {
+        return null;
+    }
+
+    const price = Number(option.dataset.price);
+    return {
+        label: normalizeWeightLabel(option.value),
+        price: Number.isFinite(price) && price >= 0 ? price : 0,
+    };
+}
+
+function updateProductWeightSelection(root) {
+    const selected = getSelectedWeightDetails(root);
+
+    if (!selected) {
+        return;
+    }
+
+    const addButton = root.querySelector("[data-cart-add]");
+    const priceDisplay = root.querySelector("[data-product-price-display]");
+
+    if (addButton) {
+        addButton.dataset.productPrice = String(selected.price);
+        addButton.dataset.productWeightLabel = selected.label;
+    }
+
+    if (priceDisplay) {
+        priceDisplay.textContent = formatCurrency(selected.price);
+    }
+}
+
+function renderWeightSelect(options) {
+    const weightOptions = normalizeWeightOptions(options);
+
+    if (!weightOptions.length) {
+        return "";
+    }
+
+    return `
+        <select class="product-weight-select" data-product-weight-select aria-label="${escapeHtml(t("home.product.weight_select"))}">
+            ${weightOptions.map((option, index) => `
+                <option
+                    value="${escapeHtml(option.label)}"
+                    data-price="${escapeHtml(option.price)}"
+                    ${index === 0 ? "selected" : ""}
+                >
+                    ${escapeHtml(option.label)} - ${escapeHtml(formatCurrency(option.price))}
+                </option>
+            `).join("")}
+        </select>
+    `;
 }
 
 function getLiveSearchState(root) {
@@ -264,15 +338,13 @@ function renderLiveSearchCategory(category, productsUrl) {
 }
 
 function renderLiveSearchProduct(product) {
-    const stock = normalizeStock(product.stock);
-    const stockLabel = stock === null
-        ? ""
-        : stock === 0
-            ? t("js.cart.out_of_stock")
-            : t("js.search.stock_available", { count: stock });
+    const weightOptions = normalizeWeightOptions(product.weight_options);
+    const selectedWeightOption = weightOptions[0] || null;
+    const displayPrice = selectedWeightOption ? selectedWeightOption.price : Number(product.display_price ?? product.price) || 0;
     const imageMarkup = product.image
         ? `<img src="${escapeHtml(buildStaticImageUrl(product.image))}" alt="">`
         : `<div class="search-live-product-fallback">MF</div>`;
+    const weightSelect = renderWeightSelect(weightOptions);
 
     return `
         <article class="search-live-product">
@@ -281,22 +353,21 @@ function renderLiveSearchProduct(product) {
                 <small>${escapeHtml(product.category_name || t("home.product.category_empty"))}</small>
                 <strong>${escapeHtml(product.name || "")}</strong>
                 <span>
-                    ${escapeHtml(formatCurrency(product.price))}
-                    ${stockLabel ? `&middot; ${escapeHtml(stockLabel)}` : ""}
+                    <span data-product-price-display>${escapeHtml(formatCurrency(displayPrice))}</span>
                 </span>
+                ${weightSelect}
             </div>
             <button
                 type="button"
                 class="button-primary"
-                ${stock === 0 ? "disabled" : ""}
                 data-cart-add
                 data-product-id="${escapeHtml(product.id)}"
                 data-product-name="${escapeHtml(product.name || "")}"
-                data-product-price="${escapeHtml(product.price)}"
+                data-product-price="${escapeHtml(displayPrice)}"
                 data-product-image="${escapeHtml(product.image || "")}"
-                data-product-stock="${escapeHtml(stock === null ? "" : stock)}"
+                data-product-weight-label="${escapeHtml(selectedWeightOption?.label || "")}"
             >
-                ${stock === 0 ? t("home.product.out_of_stock") : t("home.product.add")}
+                ${t("home.product.add")}
             </button>
         </article>
     `;
@@ -517,36 +588,28 @@ function notify(message, type = "success") {
     }, 2800);
 }
 
-function addToCart(id, name, price, image, stock = null) {
+function cartItemsMatch(item, productId, weightLabel = "") {
+    return item.id === Number(productId) && item.weightLabel === normalizeWeightLabel(weightLabel);
+}
+
+function addToCart(id, name, price, image, weightLabel = "") {
     const cart = getCart();
     const productId = Number(id);
     const productName = String(name || "");
     const productPrice = Number(price) || 0;
-    const productStock = normalizeStock(stock);
-    const existing = cart.find((item) => item.id === productId);
+    const productWeightLabel = normalizeWeightLabel(weightLabel);
+    const existing = cart.find((item) => cartItemsMatch(item, productId, productWeightLabel));
 
     if (existing) {
-        if (productStock !== null && existing.quantity >= productStock) {
-            notify(t("js.cart.max_quantity"), "error");
-            return;
-        }
-
         existing.quantity += 1;
-        if (existing.stock === null && productStock !== null) {
-            existing.stock = productStock;
-        }
+        existing.price = productPrice;
     } else {
-        if (productStock === 0) {
-            notify(t("js.cart.out_of_stock"), "error");
-            return;
-        }
-
         cart.push({
             id: productId,
             name: productName,
             price: productPrice,
             image: image || "",
-            stock: productStock,
+            weightLabel: productWeightLabel,
             quantity: 1,
         });
     }
@@ -565,23 +628,18 @@ function updateCartCount() {
     element.textContent = total;
 }
 
-function changeQuantity(id, delta) {
+function changeQuantity(id, delta, weightLabel = "") {
     const cart = getCart();
-    const item = cart.find((entry) => entry.id === id);
+    const item = cart.find((entry) => cartItemsMatch(entry, id, weightLabel));
 
     if (!item) {
-        return;
-    }
-
-    if (delta > 0 && item.stock !== null && item.quantity >= item.stock) {
-        notify(t("js.cart.max_quantity"), "error");
         return;
     }
 
     item.quantity += delta;
 
     if (item.quantity <= 0) {
-        const index = cart.findIndex((entry) => entry.id === id);
+        const index = cart.findIndex((entry) => cartItemsMatch(entry, id, weightLabel));
         cart.splice(index, 1);
     }
 
@@ -589,8 +647,8 @@ function changeQuantity(id, delta) {
     renderCart();
 }
 
-function removeFromCart(id) {
-    const cart = getCart().filter((item) => item.id !== id);
+function removeFromCart(id, weightLabel = "") {
+    const cart = getCart().filter((item) => !cartItemsMatch(item, id, weightLabel));
     saveCart(cart);
     renderCart();
     notify(t("js.cart.removed"), "info");
@@ -642,31 +700,47 @@ function renderCart() {
             const lineTotal = item.price * item.quantity;
             total += lineTotal;
 
-            const stockLabel = item.stock === null
-                ? ""
-                : item.stock === 0
-                    ? `<span class="cart-stock is-empty">${escapeHtml(t("js.cart.stock_out"))}</span>`
-                    : `<span class="cart-stock">${escapeHtml(t("js.cart.stock_available_short", { count: item.stock }))}</span>`;
+            const weightLabel = item.weightLabel
+                ? `<span class="cart-weight">${escapeHtml(item.weightLabel)}</span>`
+                : "";
 
             return `
                 <article class="cart-row">
                     <div class="cart-row-main">
                         <strong>${escapeHtml(item.name)}</strong>
                         <div class="cart-row-meta">
+                            ${weightLabel}
                             <span>${formatCurrency(item.price)} / ${escapeHtml(t("js.cart.unit"))}</span>
-                            ${stockLabel}
                         </div>
                     </div>
 
                     <div class="quantity">
-                        <button type="button" onclick="changeQuantity(${item.id}, -1)">-</button>
+                        <button
+                            type="button"
+                            data-cart-quantity
+                            data-product-id="${escapeHtml(item.id)}"
+                            data-product-weight-label="${escapeHtml(item.weightLabel)}"
+                            data-cart-delta="-1"
+                        >-</button>
                         <strong>${item.quantity}</strong>
-                        <button type="button" onclick="changeQuantity(${item.id}, 1)">+</button>
+                        <button
+                            type="button"
+                            data-cart-quantity
+                            data-product-id="${escapeHtml(item.id)}"
+                            data-product-weight-label="${escapeHtml(item.weightLabel)}"
+                            data-cart-delta="1"
+                        >+</button>
                     </div>
 
                     <strong>${formatCurrency(lineTotal)}</strong>
 
-                    <button type="button" class="danger" onclick="removeFromCart(${item.id})">
+                    <button
+                        type="button"
+                        class="danger"
+                        data-cart-remove
+                        data-product-id="${escapeHtml(item.id)}"
+                        data-product-weight-label="${escapeHtml(item.weightLabel)}"
+                    >
                         ${escapeHtml(t("common.delete"))}
                     </button>
                 </article>
@@ -724,7 +798,11 @@ async function sendOrderToWhatsApp() {
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
             body: new URLSearchParams({
-                items: JSON.stringify(cart.map((item) => ({ id: item.id, quantity: item.quantity }))),
+                items: JSON.stringify(cart.map((item) => ({
+                    id: item.id,
+                    quantity: item.quantity,
+                    weight_label: item.weightLabel,
+                }))),
                 _csrf_token: getShopConfig().csrfToken || "",
             }),
         });
@@ -749,7 +827,8 @@ async function sendOrderToWhatsApp() {
 
     order.items.forEach((item) => {
         const lineTotal = item.price * item.quantity;
-        lines.push(`- ${item.name} x ${item.quantity} : ${formatCurrency(lineTotal)}`);
+        const weightLabel = item.weight_label ? ` (${item.weight_label})` : "";
+        lines.push(`- ${item.name}${weightLabel} x ${item.quantity} : ${formatCurrency(lineTotal)}`);
     });
 
     lines.push("", t("js.cart.total", { total: formatCurrency(order.total) }));
@@ -829,6 +908,76 @@ function bindAdminRealtimeFilter(root) {
 
         if (emptyState) {
             emptyState.hidden = visibleCount > 0 || !query;
+        }
+    });
+}
+
+function createWeightOptionRow() {
+    return `
+        <div class="weight-option-row" data-weight-option-row>
+            <input
+                name="weight_label"
+                placeholder="${escapeHtml(t("admin.product.weight_label_placeholder"))}"
+                autocomplete="off"
+            >
+            <input
+                name="weight_price"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="${escapeHtml(t("admin.product.weight_price_placeholder"))}"
+            >
+            <button
+                type="button"
+                class="button-secondary weight-option-remove"
+                data-weight-option-remove
+                aria-label="${escapeHtml(t("admin.product.remove_weight_option"))}"
+            >
+                ${escapeHtml(t("admin.product.remove_weight_option"))}
+            </button>
+        </div>
+    `;
+}
+
+function bindWeightOptionsEditors() {
+    document.querySelectorAll("[data-weight-options-editor]").forEach((editor) => {
+        const list = editor.querySelector("[data-weight-option-list]");
+        const addButton = editor.querySelector("[data-weight-option-add]");
+
+        if (!list) {
+            return;
+        }
+
+        addButton?.addEventListener("click", () => {
+            list.insertAdjacentHTML("beforeend", createWeightOptionRow());
+            list.querySelector("[data-weight-option-row]:last-child input")?.focus();
+        });
+
+        editor.addEventListener("click", (event) => {
+            if (!(event.target instanceof Element)) {
+                return;
+            }
+
+            const removeButton = event.target.closest("[data-weight-option-remove]");
+            if (!removeButton) {
+                return;
+            }
+
+            const rows = Array.from(list.querySelectorAll("[data-weight-option-row]"));
+            const row = removeButton.closest("[data-weight-option-row]");
+
+            if (rows.length <= 1) {
+                row?.querySelectorAll("input").forEach((input) => {
+                    input.value = "";
+                });
+                return;
+            }
+
+            row?.remove();
+        });
+
+        if (!list.querySelector("[data-weight-option-row]")) {
+            list.insertAdjacentHTML("beforeend", createWeightOptionRow());
         }
     });
 }
@@ -1139,6 +1288,11 @@ document.addEventListener("DOMContentLoaded", () => {
     bindCustomerFields();
     bindQuickReturnButton();
     bindProductModal();
+    bindWeightOptionsEditors();
+
+    document.querySelectorAll("[data-product-weight-select]").forEach((select) => {
+        updateProductWeightSelection(select.closest(".product-card, .search-live-product"));
+    });
 
     document.querySelectorAll("[data-live-search-root]").forEach((root) => {
         bindLiveSearch(root);
@@ -1164,8 +1318,45 @@ document.addEventListener("DOMContentLoaded", () => {
             button.dataset.productName,
             button.dataset.productPrice,
             button.dataset.productImage,
-            button.dataset.productStock
+            button.dataset.productWeightLabel
         );
+    });
+
+    document.addEventListener("change", (event) => {
+        if (!(event.target instanceof Element)) {
+            return;
+        }
+
+        const select = event.target.closest("[data-product-weight-select]");
+        if (!select) {
+            return;
+        }
+
+        updateProductWeightSelection(select.closest(".product-card, .search-live-product"));
+    });
+
+    document.addEventListener("click", (event) => {
+        if (!(event.target instanceof Element)) {
+            return;
+        }
+
+        const quantityButton = event.target.closest("[data-cart-quantity]");
+        if (quantityButton) {
+            changeQuantity(
+                Number(quantityButton.dataset.productId),
+                Number(quantityButton.dataset.cartDelta),
+                quantityButton.dataset.productWeightLabel
+            );
+            return;
+        }
+
+        const removeButton = event.target.closest("[data-cart-remove]");
+        if (removeButton) {
+            removeFromCart(
+                Number(removeButton.dataset.productId),
+                removeButton.dataset.productWeightLabel
+            );
+        }
     });
 
     document.addEventListener("click", (event) => {

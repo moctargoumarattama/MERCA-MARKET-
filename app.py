@@ -18,6 +18,7 @@ from i18n import (
     translate,
 )
 from models.database import init_db, close_db
+from models.product_options import get_product_weight_options, product_display_price
 
 t = translate
 
@@ -398,6 +399,8 @@ def create_app():
             "translation_missing_keys": translation_report.get(current_language, {}).get("missing", []),
             "asset_version": app.config["ASSET_VERSION"],
             "plural_suffix": plural_suffix,
+            "product_weight_options": get_product_weight_options,
+            "product_display_price": product_display_price,
             "t": translate,
             "csrf_token": generate_csrf_token,
         }

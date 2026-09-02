@@ -118,6 +118,8 @@
 
         <div class="product-grid product-grid--compact">
             {% for product in products %}
+                {% set weight_options = product_weight_options(product) %}
+                {% set display_price = product_display_price(product) %}
                 <article class="product-card product-card--compact">
                     <div class="product-media">
                         {% if product.image %}
@@ -131,8 +133,17 @@
                         <small>{{ product.category_name or t('home.product.category_empty') }}</small>
                         <h3>{{ product.name }}</h3>
                         <div class="price-row">
-                            <strong>{{ "%.2f"|format(product.price) }} DH</strong>
+                            <strong data-product-price-display>{{ "%.2f"|format(display_price) }} DH</strong>
                         </div>
+                        {% if weight_options %}
+                            <select class="product-weight-select" data-product-weight-select aria-label="{{ t('home.product.weight_select') }}">
+                                {% for option in weight_options %}
+                                    <option value="{{ option.label }}" data-price="{{ option.price }}" {% if loop.first %}selected{% endif %}>
+                                        {{ option.label }} - {{ "%.2f"|format(option.price) }} DH
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        {% endif %}
                         <button
                             type="button"
                             class="product-more"
@@ -147,19 +158,14 @@
                         <button
                             type="button"
                             class="button-primary"
-                            {% if product.stock == 0 %}disabled{% endif %}
                             data-cart-add
                             data-product-id="{{ product.id }}"
                             data-product-name="{{ product.name|e }}"
-                            data-product-price="{{ product.price }}"
+                            data-product-price="{{ display_price }}"
                             data-product-image="{{ product.image|e }}"
-                            data-product-stock="{{ product.stock }}"
+                            data-product-weight-label="{{ (weight_options[0].label if weight_options else '')|e }}"
                         >
-                            {% if product.stock == 0 %}
-                                {{ t('home.product.out_of_stock') }}
-                            {% else %}
-                                {{ t('home.product.add') }}
-                            {% endif %}
+                            {{ t('home.product.add') }}
                         </button>
                     </div>
                 </article>

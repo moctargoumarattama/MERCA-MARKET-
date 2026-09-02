@@ -12,6 +12,7 @@ os.environ.setdefault("ADMIN_PASSWORD_HASH", generate_password_hash("primary-pas
 
 from app import create_app
 from models.database import get_db, init_db
+from models.product_options import encode_weight_options
 from security import RateLimiter
 
 
@@ -91,6 +92,35 @@ class RobustnessTests(unittest.TestCase):
             ).fetchone()[0]
             self.assertEqual(invalid_product_count, 0)
 
+    def test_product_creation_accepts_admin_weight_prices_without_simple_price(self):
+        response = self.client.post(
+            "/admin/products/add?panel=add-product",
+            data={
+                "name": "Noix",
+                "category_id": str(self.category_id),
+                "weight_label": ["100 g", "200 g"],
+                "weight_price": ["12,50", "22"],
+                "_csrf_token": "test-csrf-token",
+            },
+            follow_redirects=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        with self.app.app_context():
+            database = get_db()
+            product = database.execute(
+                "SELECT price, weight_options FROM products WHERE name = ?",
+                ("Noix",),
+            ).fetchone()
+
+            self.assertIsNotNone(product)
+            self.assertEqual(product["price"], 12.5)
+            self.assertEqual(
+                json.loads(product["weight_options"]),
+                [{"label": "100 g", "price": 12.5}, {"label": "200 g", "price": 22.0}],
+            )
+
     def test_secondary_admin_cannot_take_primary_username(self):
         response = self.client.post(
             "/admin/admins",
@@ -129,6 +159,45 @@ class RobustnessTests(unittest.TestCase):
         payload = response.get_json()
         self.assertEqual(payload["items"], [{"name": "Amande", "price": 42.0, "quantity": 2}])
         self.assertEqual(payload["total"], 84.0)
+
+    def test_checkout_uses_the_server_price_for_selected_weight(self):
+        with self.app.app_context():
+            database = get_db()
+            database.execute(
+                "UPDATE products SET price = ?, weight_options = ? WHERE id = ?",
+                (
+                    12.5,
+                    encode_weight_options([
+                        {"label": "100 g", "price": 12.5},
+                        {"label": "200 g", "price": 22.0},
+                    ]),
+                    self.product_id,
+                ),
+            )
+            database.commit()
+
+        response = self.client.post(
+            "/api/checkout",
+            data={
+                "items": json.dumps([
+                    {"id": self.product_id, "quantity": 2, "weight_label": "100 g", "price": 0.01},
+                    {"id": self.product_id, "quantity": 1, "weight_label": "200 g", "price": 0.01},
+                    {"id": self.product_id, "quantity": 1, "weight_label": "999 g", "price": 0.01},
+                ]),
+                "_csrf_token": "test-csrf-token",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        self.assertEqual(
+            payload["items"],
+            [
+                {"name": "Amande", "price": 12.5, "quantity": 2, "weight_label": "100 g"},
+                {"name": "Amande", "price": 22.0, "quantity": 1, "weight_label": "200 g"},
+            ],
+        )
+        self.assertEqual(payload["total"], 47.0)
 
     def test_rate_limiter_uses_remote_address_not_forwarded_header(self):
         limiter = RateLimiter()

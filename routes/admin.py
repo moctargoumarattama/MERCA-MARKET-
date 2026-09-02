@@ -1,5 +1,4 @@
 import sqlite3
-import math
 from functools import wraps
 from pathlib import Path
 from uuid import uuid4
@@ -23,6 +22,11 @@ from security import rate_limit
 
 from i18n import translate as t
 from models.database import get_db
+from models.product_options import (
+    encode_weight_options,
+    normalize_weight_options_from_form,
+    parse_decimal_price,
+)
 
 admin_bp = Blueprint("admin", __name__)
 
@@ -76,31 +80,15 @@ def login_required(view):
     return wrapped
 
 
-def _parse_stock(raw_value):
-    value = (raw_value or "").strip()
-    if not value:
-        return None
-
-    try:
-        stock = int(value)
-    except ValueError as exc:
-        raise ValueError(t("validation.stock_integer")) from exc
-
-    return max(stock, 0)
-
-
 def _parse_price(raw_value):
-    value = (raw_value or "").strip()
+    return parse_decimal_price(raw_value)
 
-    try:
-        price = float(value)
-    except ValueError:
-        return None
 
-    if not math.isfinite(price) or price < 0:
-        return None
+def _weight_options_error_message(error):
+    if str(error) == "duplicate_weight_option":
+        return t("validation.weight_options_duplicate")
 
-    return price
+    return t("validation.weight_options_invalid")
 
 
 def _determine_image_format(stream) -> str | None:
@@ -430,7 +418,7 @@ def dashboard():
             (SELECT COUNT(*) FROM categories) AS category_count,
             (SELECT COUNT(*) FROM products) AS product_count,
             (SELECT COUNT(*) FROM products WHERE available = 1) AS active_product_count,
-            (SELECT COUNT(*) FROM products WHERE available = 1 AND stock = 0) AS sold_out_count
+            0 AS sold_out_count
         """
     ).fetchone()
     today = db.execute(
@@ -558,13 +546,26 @@ def add_product():
     name = request.form.get("name", "").strip()
     description = request.form.get("description", "").strip()
     price = _parse_price(request.form.get("price", ""))
+    try:
+        weight_options = normalize_weight_options_from_form(
+            request.form.getlist("weight_label"),
+            request.form.getlist("weight_price"),
+        )
+    except ValueError as exc:
+        flash(_weight_options_error_message(exc), "error")
+        return redirect(url_for("admin.dashboard", panel=normalize_admin_panel(request.args.get("panel"))))
+
+    stored_price = weight_options[0]["price"] if weight_options else price
     category_id = request.form.get("category_id", type=int)
     available = 1 if request.form.get("available") else 0
-    stock_raw = request.form.get("stock", "")
     panel = normalize_admin_panel(request.args.get("panel"))
 
-    if not name or price is None or price < 0:
+    if not name:
         flash(t("flash.product_name_price_required"), "error")
+        return redirect(url_for("admin.dashboard", panel=panel))
+
+    if stored_price is None:
+        flash(t("flash.product_price_or_weight_required"), "error")
         return redirect(url_for("admin.dashboard", panel=panel))
 
     if category_id is None:
@@ -578,7 +579,6 @@ def add_product():
         return redirect(url_for("admin.dashboard", panel=panel))
 
     try:
-        stock = _parse_stock(stock_raw)
         image_name = _save_product_image(request.files.get("image"))
     except ValueError as exc:
         flash(str(exc), "error")
@@ -586,10 +586,19 @@ def add_product():
 
     db.execute(
         """
-        INSERT INTO products(name, description, price, image, category_id, available, stock)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO products(name, description, price, weight_options, image, category_id, available, stock)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (name, description, price, image_name, category_id, available, stock),
+        (
+            name,
+            description,
+            stored_price,
+            encode_weight_options(weight_options),
+            image_name,
+            category_id,
+            available,
+            None,
+        ),
     )
     db.commit()
 
@@ -613,13 +622,26 @@ def edit_product(product_id):
         name = request.form.get("name", "").strip()
         description = request.form.get("description", "").strip()
         price = _parse_price(request.form.get("price", ""))
+        try:
+            weight_options = normalize_weight_options_from_form(
+                request.form.getlist("weight_label"),
+                request.form.getlist("weight_price"),
+            )
+        except ValueError as exc:
+            flash(_weight_options_error_message(exc), "error")
+            return redirect(url_for("admin.edit_product", product_id=product_id))
+
+        stored_price = weight_options[0]["price"] if weight_options else price
         category_id = request.form.get("category_id", type=int)
         available = 1 if request.form.get("available") else 0
-        stock_raw = request.form.get("stock", "")
         image_name = product["image"]
 
-        if not name or price is None or price < 0:
+        if not name:
             flash(t("flash.product_name_price_required"), "error")
+            return redirect(url_for("admin.edit_product", product_id=product_id))
+
+        if stored_price is None:
+            flash(t("flash.product_price_or_weight_required"), "error")
             return redirect(url_for("admin.edit_product", product_id=product_id))
 
         if category_id is None:
@@ -632,7 +654,6 @@ def edit_product(product_id):
             return redirect(url_for("admin.edit_product", product_id=product_id))
 
         try:
-            stock = _parse_stock(stock_raw)
             image_name = _save_product_image(request.files.get("image"), image_name)
         except ValueError as exc:
             flash(str(exc), "error")
@@ -641,10 +662,20 @@ def edit_product(product_id):
         db.execute(
             """
             UPDATE products
-            SET name = ?, description = ?, price = ?, image = ?, category_id = ?, available = ?, stock = ?
+            SET name = ?, description = ?, price = ?, weight_options = ?, image = ?, category_id = ?, available = ?, stock = ?
             WHERE id = ?
             """,
-            (name, description, price, image_name, category_id, available, stock, product_id),
+            (
+                name,
+                description,
+                stored_price,
+                encode_weight_options(weight_options),
+                image_name,
+                category_id,
+                available,
+                None,
+                product_id,
+            ),
         )
         db.commit()
 
