@@ -1,4 +1,4 @@
-const CACHE_NAME = "merca-fruit-sec-v1";
+const CACHE_NAME = "merca-fruit-sec-v2";
 const APP_SHELL = [
     "/static/manifest.webmanifest",
     "/static/css/style.css",
@@ -49,6 +49,22 @@ self.addEventListener("fetch", (event) => {
                     const cachedPage = await caches.match(event.request);
                     return cachedPage || caches.match("/") || new Response("Hors ligne", { status: 503 });
                 })
+        );
+        return;
+    }
+
+    if (
+        requestUrl.origin === self.location.origin
+        && (requestUrl.pathname.endsWith(".js") || requestUrl.pathname.endsWith(".css"))
+    ) {
+        event.respondWith(
+            fetch(event.request)
+                .then((response) => {
+                    const copy = response.clone();
+                    caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+                    return response;
+                })
+                .catch(() => caches.match(event.request))
         );
         return;
     }
