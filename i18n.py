@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from urllib.parse import urlparse
 
@@ -79,8 +79,8 @@ TRANSLATIONS = {
         "modal.close": "Fermer",
         "modal.no_description": "Aucune description disponible.",
         "home.page_title": "Accueil",
-        "home.hero.title": "Une selection variee, commandee en quelques secondes.",
-        "home.hero.subtitle": "Decouvrez nos produits et commandez rapidement sur WhatsApp.",
+        "home.hero.title": "Une sélection variée, commandée en quelques secondes.",
+        "home.hero.subtitle": "Découvrez nos produits et commandez rapidement sur WhatsApp.",
         "home.hero.cta.products": "Voir les produits",
         "home.hero.cta.whatsapp": "WhatsApp",
         "home.search.placeholder": "Rechercher un produit ou une categorie",

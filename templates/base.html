@@ -22,25 +22,7 @@
                 </span>
             </a>
 
-            <button
-                type="button"
-                class="menu-toggle"
-                aria-expanded="false"
-                aria-controls="main-nav"
-                aria-label="{{ t('nav.open_menu') }}"
-                onclick="toggleMobileMenu()"
-            >
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
-
-            <nav class="nav-panel" id="main-nav">
-                <div class="nav-links">
-                    <a href="{{ url_for('public.index') }}">{{ t('common.home') }}</a>
-                </div>
-
-                <div class="header-actions">
+            <div class="header-actions">
                     <div class="language-switcher" aria-label="{{ t('common.language') }}">
                         {% for code, meta in languages.items() %}
                             <a
@@ -56,8 +38,8 @@
                         {% endfor %}
                     </div>
 
-                    <a class="nav-cart" href="{{ url_for('public.cart') }}">
-                        {{ t('nav.cart') }} <span id="cart-count">0</span>
+                    <a class="nav-cart" href="{{ url_for('public.cart') }}" aria-label="{{ t('nav.cart') }}">
+                        🛒 <span class="nav-cart-label">{{ t('nav.cart') }}</span><span id="cart-count">0</span>
                     </a>
 
                     <button type="button" class="pwa-install-button" data-pwa-install hidden>
@@ -65,7 +47,6 @@
                         <span>{{ t('pwa.install') }}</span>
                     </button>
                 </div>
-            </nav>
         </div>
     </header>
 

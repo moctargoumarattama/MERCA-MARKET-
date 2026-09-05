@@ -2266,35 +2266,38 @@ h3,
     align-items: center;
     gap: 10px;
     margin-left: 0;
+    flex-shrink: 0;
 }
 
 .language-switcher {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
     padding: 4px;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: #120a05;
+    border: 1px solid transparent;
 }
 
 .language-switcher-link {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 42px;
-    padding: 8px 12px;
+    min-width: 40px;
+    padding: 7px 12px;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.12);
-    color: #fff;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.75);
     font-weight: 700;
+    font-size: 0.88rem;
     text-decoration: none;
-    transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+    transition: background 0.2s ease, color 0.2s ease;
 }
 
 .language-switcher-link:hover,
 .language-switcher-link:focus-visible {
     background: rgba(255, 255, 255, 0.2);
+    color: #fff;
 }
 
 .language-switcher-link.is-active {
@@ -2306,11 +2309,14 @@ h3,
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 14px;
+    padding: 9px 16px;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.08);
+    background: #120a05;
     color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: none;
+    font-weight: 700;
+    font-size: 0.88rem;
+    transition: background 0.2s ease, transform 0.2s ease;
 }
 
 .nav-cart span {
@@ -3533,8 +3539,37 @@ body.modal-open {
 
 @media (max-width: 900px) {
     .header-inner {
-        gap: 12px;
+        gap: 10px;
+        padding: 12px 4%;
+        flex-wrap: nowrap;
     }
+
+    .logo {
+        padding: 5px 8px;
+        gap: 6px;
+        flex-shrink: 1;
+        min-width: 0;
+    }
+
+    .logo-img {
+        width: 36px;
+        height: 36px;
+        flex-shrink: 0;
+    }
+
+    .logo-text {
+        display: flex;
+        min-width: 0;
+    }
+
+    .logo-text strong {
+        font-size: 0.72rem;
+        letter-spacing: 0.03em;
+        white-space: normal;
+        line-height: 1.2;
+        word-break: break-word;
+    }
+
 
     .menu-toggle {
         display: inline-flex;
@@ -3582,22 +3617,42 @@ body.modal-open {
     }
 
     .header-actions {
-        width: 100%;
+        width: auto;
         margin-left: 0;
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 10px;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+    }
+
+    .language-switcher {
+        gap: 2px;
+        padding: 3px;
+    }
+
+    .language-switcher-link {
+        min-width: 32px;
+        padding: 5px 8px;
+        font-size: 0.78rem;
     }
 
     .nav-cart {
-        width: 100%;
+        width: auto;
         justify-content: center;
+        padding: 7px 10px;
+        font-size: 0.78rem;
+    }
+
+    .nav-cart-label {
+        display: none;
     }
 
     .pwa-install-button {
-        width: 100%;
+        width: auto;
         justify-content: center;
     }
+
 
     .hero-visual-frame {
         width: min(100%, 520px);
