@@ -9,9 +9,11 @@
     <link rel="icon" href="{{ url_for('static', filename='images/icon-192.png') }}" type="image/png">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/icon-192.png') }}">
     <title>{% block title %}{{ shop_name }}{% endblock %}</title>
+    <link rel="preload" href="{{ url_for('static', filename='css/style.css', v=asset_version) }}" as="style">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css', v=asset_version) }}">
 </head>
-<body>
+<body style="background:#fbf7ea;margin:0">
+
 <div class="page-shell">
     <header class="header">
         <div class="header-inner">

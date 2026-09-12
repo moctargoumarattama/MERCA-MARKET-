@@ -8,9 +8,11 @@
     <link rel="icon" href="{{ url_for('static', filename='images/icon-192.png') }}" type="image/png">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/icon-192.png') }}">
     <title>{{ shop_name }} | {{ t('admin.space') }}</title>
+    <link rel="preload" href="{{ url_for('static', filename='css/style.css', v=asset_version) }}" as="style">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css', v=asset_version) }}">
 </head>
-<body>
+<body style="background:#120a05;margin:0">
+
 <div class="page-shell">
     {% include "admin/_header.html" %}
 
