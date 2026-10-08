@@ -23,6 +23,8 @@ from security import rate_limit
 
 from i18n import translate as t
 from models.database import get_db
+from image_delivery import optimized_image_path
+from image_processing import ImageProcessingError
 from models.product_options import (
     encode_weight_options,
     normalize_weight_options_from_form,
@@ -232,7 +234,16 @@ def _save_product_image(image, current_image=""):
     new_image_name = f"{Path(filename).stem}-{uuid4().hex}{extension}"
 
     image.stream.seek(0)
-    image.save(Path(current_app.config["UPLOAD_FOLDER"]) / new_image_name)
+    new_image_path = Path(current_app.config["UPLOAD_FOLDER"]) / new_image_name
+    try:
+        image.save(new_image_path)
+        # Validate and prepare the compressed version before changing the product.
+        optimized_image_path(new_image_name, "product1200")
+    except (ImageProcessingError, OSError) as exc:
+        new_image_path.unlink(missing_ok=True)
+        if isinstance(exc, ImageProcessingError):
+            raise ValueError(t("validation.image_format")) from exc
+        raise
 
     if current_image:
         old_image_path = Path(current_app.config["UPLOAD_FOLDER"]) / current_image

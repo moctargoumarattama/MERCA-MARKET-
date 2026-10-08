@@ -324,12 +324,17 @@ def create_app():
 
     from routes.public import public_bp
     from routes.admin import admin_bp
+    from image_delivery import media_bp, image_url
 
     app.register_blueprint(public_bp)
     app.register_blueprint(admin_bp, url_prefix="/admin")
+    app.register_blueprint(media_bp)
+    app.add_template_global(image_url, "image_url")
 
     @app.before_request
     def ensure_language():
+        if request.blueprint == "media":
+            return
         current_language = session.get("ui_lang")
 
         if current_language not in get_language_options():
@@ -342,7 +347,7 @@ def create_app():
     def track_daily_visitor():
         if request.method != "GET":
             return
-        if request.blueprint == "admin":
+        if request.blueprint in {"admin", "media"}:
             return
         if request.endpoint in (None, "static"):
             return

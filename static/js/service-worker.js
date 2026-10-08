@@ -1,7 +1,7 @@
 // ─── Version du cache ────────────────────────────────────────────────────────
 // À synchroniser avec ASSET_VERSION dans config.py à chaque déploiement.
 // Changer cette valeur invalide automatiquement tout l'ancien cache.
-const CACHE_NAME = "merca-fruit-sec-v21-category-requests";
+const CACHE_NAME = "merca-fruit-sec-v22-optimized-images";
 
 // ─── Ressources statiques à pré-cacher (app shell) ───────────────────────────
 const APP_SHELL = [
@@ -10,10 +10,10 @@ const APP_SHELL = [
     "/static/css/modern.css",
     "/static/css/responsive.css",
     "/static/js/app.js",
-    "/static/images/icon-192.png",
-    "/static/images/icon-512.png",
-    "/static/images/LOGO.png",
-    "/static/images/3.png",
+    "/media/icon192/icon-192.png",
+    "/media/icon512/icon-512.png",
+    "/media/logo128/LOGO.png",
+    "/media/hero600/3.png",
 ];
 
 // ─── Installation : pré-cache l'app shell ────────────────────────────────────
@@ -74,6 +74,19 @@ self.addEventListener("fetch", (event) => {
 
     // ── Navigation : réseau d'abord, cache uniquement hors connexion ────────
     // Les pages dépendent de la langue enregistrée dans la session.
+    if (isSameOrigin && requestUrl.pathname.startsWith("/media/")) {
+        event.respondWith(
+            fetch(event.request).then((response) => {
+                if (response.ok) {
+                    const copy = response.clone();
+                    event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy)));
+                }
+                return response;
+            }).catch(async () => await caches.match(event.request) || new Response("", { status: 503 }))
+        );
+        return;
+    }
+
     if (event.request.mode === "navigate") {
         event.respondWith(
             fetch(event.request)
