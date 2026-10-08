@@ -70,7 +70,7 @@
                     img = document.createElement("img");
                     media.replaceChildren(img);
                 }
-                img.src = buildStaticImageUrl(category.cover_image);
+                img.src = buildStaticImageUrl(category.cover_image, "thumbnail");
                 img.alt = category.name;
             } else if (media && media.querySelector("img")) {
                 const fallback = document.createElement("div");

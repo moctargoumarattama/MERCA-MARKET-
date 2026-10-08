@@ -5,7 +5,11 @@
 <!-- 1. HERO SHOWCASE (PHOTO 2 TEXT REMOVED, CENTRED & CLEAN) -->
 <section class="hero-showcase-section">
     <div class="hero-showcase-circle-wrap">
-        <img src="{{ url_for('static', filename='images/3.png') }}" alt="{{ shop_name }}" class="hero-showcase-circle" loading="eager">
+        <img src="{{ image_url('3.png', 'hero600') }}"
+             srcset="{{ image_url('3.png', 'hero600') }} 600w, {{ image_url('3.png', 'hero900') }} 900w"
+             sizes="(min-width: 769px) 290px, 250px"
+             width="1254" height="1254"
+             alt="{{ shop_name }}" class="hero-showcase-circle" loading="eager" fetchpriority="high">
     </div>
 </section>
 
@@ -39,7 +43,7 @@
             >
                 <div class="category-dept-media">
                     {% if category.cover_image %}
-                        <img src="{{ url_for('static', filename='images/' + category.cover_image) }}" alt="{{ category.name }}" loading="lazy">
+                        <img src="{{ image_url(category.cover_image, 'card480') }}" alt="{{ category.name }}" loading="lazy">
                     {% else %}
                         <div class="category-dept-fallback">
                             {% if "sec" in category.name.lower() or "fruit" in category.name.lower() or "noix" in category.name.lower() or "amande" in category.name.lower() %}
@@ -145,7 +149,7 @@
                     title="{{ product.name }} - {{ t('home.product.see_more') }}"
                 >
                     {% if product.image %}
-                        <img src="{{ url_for('static', filename='images/' + product.image) }}" alt="{{ product.name }}" loading="lazy">
+                        <img src="{{ image_url(product.image, 'card480') }}" alt="{{ product.name }}" loading="lazy">
                     {% else %}
                         <div class="no-image">🌿</div>
                     {% endif %}

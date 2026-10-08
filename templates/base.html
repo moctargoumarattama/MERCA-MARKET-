@@ -6,8 +6,8 @@
     <meta name="theme-color" content="#1E382B">
     <meta name="description" content="{{ shop_name }} - {{ t('app.meta_description') }}">
     <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
-    <link rel="icon" href="{{ url_for('static', filename='images/icon-192.png') }}" type="image/png">
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/icon-192.png') }}">
+    <link rel="icon" href="{{ image_url('icon-192.png', 'icon192') }}" type="image/png">
+    <link rel="apple-touch-icon" href="{{ image_url('icon-192.png', 'icon192') }}">
     <title>{% block title %}{{ shop_name }}{% endblock %}</title>
 
     <!-- Modern Font: Plus Jakarta Sans -->
@@ -52,7 +52,7 @@
             </div>
 
             <a class="logo logo-center" href="{{ url_for('public.index') }}" aria-label="{{ shop_name }}">
-                <img src="{{ url_for('static', filename='images/LOGO.png') }}" alt="{{ shop_name }}" class="logo-img">
+                <img src="{{ image_url('LOGO.png', 'logo128') }}" alt="{{ shop_name }}" class="logo-img">
                 <div class="logo-text-block">
                     <span class="logo-brand-main">MERCA</span>
                     <span class="logo-brand-sub">FRUIT SEC</span>
@@ -71,7 +71,7 @@
                 </button>
 
                 <button type="button" class="pwa-install-button" data-pwa-install aria-label="{{ t('pwa.install') }}" title="{{ t('pwa.install') }}" hidden>
-                    <img src="{{ url_for('static', filename='images/icon-192.png') }}" alt="">
+                    <img src="{{ image_url('icon-192.png', 'icon192') }}" alt="">
                     <span>{{ t('pwa.install') }}</span>
                 </button>
             </div>
@@ -97,7 +97,7 @@
         <div class="footer-inner">
             <div class="footer-brand">
                 <a class="footer-logo" href="{{ url_for('public.index') }}">
-                    <img src="{{ url_for('static', filename='images/LOGO.png') }}" alt="{{ t('brand.logo_alt', shop_name=shop_name) }}" class="footer-logo-img">
+                    <img src="{{ image_url('LOGO.png', 'logo128') }}" alt="{{ t('brand.logo_alt', shop_name=shop_name) }}" class="footer-logo-img">
                     <div>
                         <strong class="footer-brand-title">{{ shop_name }}</strong>
                         <p class="footer-brand-desc">{{ t('brand.tagline') }}</p>
@@ -312,7 +312,8 @@
         "searchUrl": url_for('public.api_search'),
         "checkoutUrl": url_for('public.api_checkout'),
         "csrfToken": csrf_token(),
-        "staticImagesUrl": url_for('static', filename='images/'),
+        "staticImagesUrl": image_url('', 'product1200'),
+        "thumbnailImagesUrl": image_url('', 'card480'),
         "productsUrl": url_for('public.index') ~ '#products',
         "indexUrl": url_for('public.index'),
         "cartUrl": url_for('public.cart'),

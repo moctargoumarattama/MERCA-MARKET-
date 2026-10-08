@@ -1,7 +1,7 @@
 <header class="header admin-header">
     <div class="header-inner">
         <a class="logo" href="{{ url_for('admin.dashboard') }}">
-            <img src="{{ url_for('static', filename='images/LOGO.png') }}" alt="{{ t('brand.logo_alt', shop_name=shop_name) }}" class="logo-img">
+            <img src="{{ image_url('LOGO.png', 'logo128') }}" alt="{{ t('brand.logo_alt', shop_name=shop_name) }}" class="logo-img">
             <span class="logo-text">
                 <strong>{{ shop_name }}</strong>
                 <small>{{ t('admin.space') }}</small>
@@ -54,7 +54,7 @@
                 </form>
 
                 <button type="button" class="pwa-install-button" data-pwa-install hidden>
-                    <img src="{{ url_for('static', filename='images/icon-192.png') }}" alt="">
+                    <img src="{{ image_url('icon-192.png', 'icon192') }}" alt="">
                     <span>{{ t('pwa.install') }}</span>
                 </button>
             </div>
@@ -65,6 +65,8 @@
 <script id="shop-config" type="application/json">
 {{ {
         "currentLanguage": current_lang,
+        "staticImagesUrl": image_url('', 'product1200'),
+        "thumbnailImagesUrl": image_url('', 'card480'),
         "uiStrings": ui_strings,
         "defaultUiStrings": default_ui_strings,
         "translationMissingKeys": translation_missing_keys,

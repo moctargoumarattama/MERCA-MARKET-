@@ -40,11 +40,10 @@ function renderDrawerCart() {
     }
 
     let total = 0;
-    const staticImagesUrl = getShopConfig().staticImagesUrl || "/static/images/";
     container.innerHTML = cart.map((item) => {
         const lineTotal = item.price * item.quantity;
         total += lineTotal;
-        const imgSrc = item.image ? `${staticImagesUrl}${encodeURIComponent(item.image)}` : "";
+        const imgSrc = buildStaticImageUrl(item.image, "thumbnail");
         const imgHtml = imgSrc
             ? `<img class="drawer-item-img" src="${escapeHtml(imgSrc)}" alt="${escapeHtml(item.name)}">`
             : `<div class="drawer-item-img" style="display:flex;align-items:center;justify-content:center;background:#F3EFEA;color:#1E382B;font-weight:bold;">🌿</div>`;
@@ -201,8 +200,6 @@ function renderCatModalProducts(productsList) {
         return;
     }
 
-    const staticImagesUrl = getShopConfig().staticImagesUrl || "/static/images/";
-
     bodyEl.innerHTML = `
         <div class="cat-modal-grid">
             ${productsList.map((prod, idx) => {
@@ -211,7 +208,7 @@ function renderCatModalProducts(productsList) {
                 const defaultPrice = firstWeight ? firstWeight.price : prod.price;
                 const defaultWeightLabel = firstWeight ? firstWeight.label : "";
                 
-                const imgSrc = prod.image ? `${staticImagesUrl}${encodeURIComponent(prod.image)}` : "";
+                const imgSrc = buildStaticImageUrl(prod.image, "thumbnail");
                 const imgMarkup = imgSrc
                     ? `<img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(prod.name)}" loading="lazy">`
                     : `<div class="cat-item-img-fallback">🌿</div>`;
@@ -511,12 +508,15 @@ function buildShopUrl(baseUrl, params = {}) {
     return url.toString();
 }
 
-function buildStaticImageUrl(filename) {
+function buildStaticImageUrl(filename, size = "product") {
     if (!filename) {
         return "";
     }
 
-    const baseUrl = String(getShopConfig().staticImagesUrl || "/static/images/");
+    const config = getShopConfig();
+    const baseUrl = String(size === "thumbnail"
+        ? config.thumbnailImagesUrl || "/media/card480/"
+        : config.staticImagesUrl || "/media/product1200/");
     const normalizedBase = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
     const normalizedName = String(filename).replace(/^\/+/, "");
 
@@ -603,7 +603,7 @@ function renderLiveSearchCategory(category, productsUrl) {
     const categoryUrl = buildShopUrl(productsUrl, { category: category.id });
     const count = Number(category.product_count) || 0;
     const media = category.cover_image
-        ? `<img src="${escapeHtml(buildStaticImageUrl(category.cover_image))}" alt="">`
+        ? `<img src="${escapeHtml(buildStaticImageUrl(category.cover_image, "thumbnail"))}" alt="">`
         : `<div class="search-live-category-fallback">${escapeHtml(categoryName.slice(0, 1).toUpperCase() || "M")}</div>`;
 
     return `
@@ -622,7 +622,7 @@ function renderLiveSearchProduct(product) {
     const selectedWeightOption = weightOptions[0] || null;
     const displayPrice = selectedWeightOption ? selectedWeightOption.price : Number(product.display_price ?? product.price) || 0;
     const imageMarkup = product.image
-        ? `<img src="${escapeHtml(buildStaticImageUrl(product.image))}" alt="">`
+        ? `<img src="${escapeHtml(buildStaticImageUrl(product.image, "thumbnail"))}" alt="">`
         : `<div class="search-live-product-fallback">MF</div>`;
     const weightSelect = renderWeightSelect(weightOptions);
 

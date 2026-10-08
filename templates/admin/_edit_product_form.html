@@ -32,7 +32,7 @@
             <input name="image" type="file" accept=".jpg,.jpeg,.png,.webp,.gif" aria-label="{{ t('admin.product.photo') }}">
             {% if product.image %}
                 <div class="product-preview">
-                    <img src="{{ url_for('static', filename='images/' + product.image) }}" alt="{{ product.name }}">
+                    <img src="{{ image_url(product.image, 'card480') }}" alt="{{ product.name }}">
                 </div>
             {% endif %}
             <textarea name="description" rows="2" placeholder="{{ t('admin.product.description_example') }}" aria-label="{{ t('admin.product.description_placeholder') }}" class="compact-textarea">{{ product.description }}</textarea>
