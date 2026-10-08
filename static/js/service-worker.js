@@ -73,20 +73,25 @@ self.addEventListener("fetch", (event) => {
     }
 
     // ── Navigation : réseau d'abord, cache uniquement hors connexion ────────
-    // Les pages dépendent de la langue enregistrée dans la session.
+    // ── Images dérivées /media/ : cache d'abord pour affichage instantané ─────
     if (isSameOrigin && requestUrl.pathname.startsWith("/media/")) {
         event.respondWith(
-            fetch(event.request).then((response) => {
-                if (response.ok) {
-                    const copy = response.clone();
-                    event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy)));
-                }
-                return response;
-            }).catch(async () => await caches.match(event.request) || new Response("", { status: 503 }))
+            caches.match(event.request).then((cached) => {
+                if (cached) return cached;
+                return fetch(event.request).then((response) => {
+                    if (response && response.ok) {
+                        const copy = response.clone();
+                        event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy)));
+                    }
+                    return response;
+                }).catch(async () => await caches.match(event.request) || new Response("", { status: 503 }));
+            })
         );
         return;
     }
 
+    // ── Navigation : réseau d'abord, cache uniquement hors connexion ────────
+    // Les pages dépendent de la langue enregistrée dans la session.
     if (event.request.mode === "navigate") {
         event.respondWith(
             fetch(event.request)
