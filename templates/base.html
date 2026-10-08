@@ -3,52 +3,78 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#120a05">
+    <meta name="theme-color" content="#1E382B">
     <meta name="description" content="{{ shop_name }} - {{ t('app.meta_description') }}">
     <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
     <link rel="icon" href="{{ url_for('static', filename='images/icon-192.png') }}" type="image/png">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/icon-192.png') }}">
     <title>{% block title %}{{ shop_name }}{% endblock %}</title>
-    <link rel="preload" href="{{ url_for('static', filename='css/style.css', v=asset_version) }}" as="style">
+
+    <!-- Modern Font: Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css', v=asset_version) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modern.css', v=asset_version) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css', v=asset_version) }}">
 </head>
-<body style="background:#fbf7ea;margin:0">
+<body class="public-page">
+
+<!-- 1. TOP ANNOUNCEMENT BAR (WARM & REFINED) -->
+<aside class="announcement-bar" role="region" aria-label="Annonce">
+    <div class="announcement-inner">
+        <span>{{ t('announcement.text') }}</span>
+    </div>
+</aside>
 
 <div class="page-shell">
-    <header class="header">
+    <!-- 2. MODERN REFINED HEADER (OPTION 1 : LUMINEUX & ÉPURÉ) -->
+    <header class="header header-slim">
         <div class="header-inner">
-            <a class="logo" href="{{ url_for('public.index') }}">
-                <img src="{{ url_for('static', filename='images/LOGO.png') }}" alt="{{ t('brand.logo_alt', shop_name=shop_name) }}" class="logo-img">
-                <span class="logo-text">
-                    <strong>{{ shop_name }}</strong>
-                </span>
+            <div class="header-left">
+                <div class="language-switcher-minimal" aria-label="{{ t('common.language') }}">
+                    <a
+                        class="lang-link {% if current_lang == 'fr' %}is-active{% endif %}"
+                        href="{{ url_for('public.set_language', lang_code='fr', next=request.full_path) }}"
+                        lang="fr"
+                        title="Français"
+                    >FR</a>
+                    <span class="lang-divider">|</span>
+                    <a
+                        class="lang-link {% if current_lang == 'ar' %}is-active{% endif %}"
+                        href="{{ url_for('public.set_language', lang_code='ar', next=request.full_path) }}"
+                        lang="ar"
+                        dir="rtl"
+                        title="العربية"
+                    >AR</a>
+                </div>
+            </div>
+
+            <a class="logo logo-center" href="{{ url_for('public.index') }}" aria-label="{{ shop_name }}">
+                <img src="{{ url_for('static', filename='images/LOGO.png') }}" alt="{{ shop_name }}" class="logo-img">
+                <div class="logo-text-block">
+                    <span class="logo-brand-main">MERCA</span>
+                    <span class="logo-brand-sub">FRUIT SEC</span>
+                </div>
             </a>
 
-            <div class="header-actions">
-                    <div class="language-switcher" aria-label="{{ t('common.language') }}">
-                        {% for code, meta in languages.items() %}
-                            <a
-                                class="language-switcher-link {% if code == current_lang %}is-active{% endif %}"
-                                href="{{ url_for('public.set_language', lang_code=code, next=request.full_path) }}"
-                                lang="{{ code }}"
-                                dir="{{ meta.dir }}"
-                                title="{{ meta.name }}"
-                                {% if code == current_lang %}aria-current="true"{% endif %}
-                            >
-                                {{ meta.label }}
-                            </a>
-                        {% endfor %}
-                    </div>
+            <div class="header-right">
+                <!-- Modern Minimal Cart Button with Amber Badge -->
+                <button type="button" class="nav-cart-compact" data-drawer-open="cart" aria-label="{{ t('nav.cart') }}">
+                    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
+                        <path d="M3 6h18"></path>
+                        <path d="M16 10a4 4 0 0 1-8 0"></path>
+                    </svg>
+                    <span class="cart-badge" id="cart-count">0</span>
+                </button>
 
-                    <a class="nav-cart" href="{{ url_for('public.cart') }}" aria-label="{{ t('nav.cart') }}">
-                        🛒 <span class="nav-cart-label">{{ t('nav.cart') }}</span><span id="cart-count">0</span>
-                    </a>
-
-                    <button type="button" class="pwa-install-button" data-pwa-install hidden>
-                        <img src="{{ url_for('static', filename='images/icon-192.png') }}" alt="">
-                        <span>{{ t('pwa.install') }}</span>
-                    </button>
-                </div>
+                <button type="button" class="pwa-install-button" data-pwa-install aria-label="{{ t('pwa.install') }}" title="{{ t('pwa.install') }}" hidden>
+                    <img src="{{ url_for('static', filename='images/icon-192.png') }}" alt="">
+                    <span>{{ t('pwa.install') }}</span>
+                </button>
+            </div>
         </div>
     </header>
 
@@ -66,71 +92,215 @@
         {% block content %}{% endblock %}
     </main>
 
-    <button
-        type="button"
-        class="quick-return"
-        data-quick-return
-        hidden
-        aria-label="{{ t('quick_return.kicker') }}"
-    >
-        <span class="quick-return-kicker">{{ t('quick_return.kicker') }}</span>
-        <strong data-quick-return-title>{{ t('quick_return.products') }}</strong>
-    </button>
-
+    <!-- 4. MODERN LUXURY FOOTER -->
     <footer class="footer" id="contact">
         <div class="footer-inner">
             <div class="footer-brand">
                 <a class="footer-logo" href="{{ url_for('public.index') }}">
                     <img src="{{ url_for('static', filename='images/LOGO.png') }}" alt="{{ t('brand.logo_alt', shop_name=shop_name) }}" class="footer-logo-img">
-                    <span class="footer-logo-text">
-                        <strong>{{ shop_name }}</strong>
-                        <small>{{ t('brand.tagline') }}</small>
-                    </span>
+                    <div>
+                        <strong class="footer-brand-title">{{ shop_name }}</strong>
+                        <p class="footer-brand-desc">{{ t('brand.tagline') }}</p>
+                    </div>
                 </a>
 
-                <p class="footer-address">
-                    <span class="footer-address-label">{{ t('footer.address_label') }}</span>
-                    <span class="footer-address-text">{{ shop_address }}</span>
-                </p>
+                <div class="footer-address-box">
+                    <strong>📍 {{ t('footer.address_label') }} :</strong><br>
+                    <span>{{ shop_address }}</span>
+                </div>
 
-                <div class="footer-social">
-                    <span class="footer-social-label">{{ t('footer.follow_label') }}</span>
-                    <div class="footer-social-links">
-                        <a class="footer-social-link footer-social-link--facebook" href="{{ facebook_url }}" target="_blank" rel="noopener">{{ t('footer.facebook') }}</a>
-                        <a class="footer-social-link footer-social-link--instagram" href="{{ instagram_url }}" target="_blank" rel="noopener">{{ t('footer.instagram') }}</a>
-                    </div>
+                <div class="footer-social-modern">
+                    <span style="font-size:0.82rem;font-weight:700;margin-right:6px;">{{ t('footer.follow_label') }} :</span>
+                    <a class="social-pill" href="{{ facebook_url }}" target="_blank" rel="noopener">{{ t('footer.facebook') }}</a>
+                    <a class="social-pill" href="{{ instagram_url }}" target="_blank" rel="noopener">{{ t('footer.instagram') }}</a>
                 </div>
             </div>
 
-            <div class="footer-cta">
-                <span class="footer-kicker">{{ t('footer.quick_order') }}</span>
+            <div class="footer-whatsapp-card">
+                <h3>💬 {{ t('footer.quick_order') }}</h3>
                 <p>{{ t('footer.write_whatsapp') }}</p>
-                <a class="footer-whatsapp" href="https://wa.me/{{ whatsapp_number }}" target="_blank" rel="noopener">
-                    {{ t('footer.whatsapp_button') }}
+                <a class="footer-btn-whatsapp" href="https://wa.me/{{ whatsapp_number }}" target="_blank" rel="noopener">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/>
+                    </svg>
+                    <span>{{ t('footer.whatsapp_button') }}</span>
                 </a>
-                <small class="footer-note">{{ t('footer.reply_note') }}</small>
+                <small style="color:rgba(255,255,255,0.6);font-size:0.75rem;">{{ t('footer.reply_note') }}</small>
             </div>
         </div>
     </footer>
 </div>
 
-<div class="product-modal" data-product-modal hidden>
-    <button type="button" class="product-modal-backdrop" data-product-modal-close aria-label="{{ t('modal.close') }}"></button>
-    <div class="product-modal-panel" role="dialog" aria-modal="true" aria-labelledby="product-modal-title">
-        <div class="product-modal-visual" data-product-modal-visual hidden>
-            <img data-product-modal-image alt="">
-        </div>
+<!-- 5. MOBILE BOTTOM NAVIGATION BAR (< 768px) -->
+<nav class="mobile-bottom-nav" aria-label="Navigation mobile">
+    <a href="{{ url_for('public.index') }}" class="mobile-nav-item is-active">
+        <svg viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+        <span>{{ t('common.home') }}</span>
+    </a>
+    <a href="{{ url_for('public.index') }}#categories" class="mobile-nav-item">
+        <svg viewBox="0 0 24 24"><rect width="7" height="7" x="3" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="14" rx="1"></rect><rect width="7" height="7" x="3" y="14" rx="1"></rect></svg>
+        <span>{{ t('home.categories.eyebrow') }}</span>
+    </a>
+    <button type="button" class="mobile-nav-item" data-drawer-open="cart">
+        <svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><path d="M3 6h18"></path><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+        <span>{{ t('nav.cart') }}</span>
+        <span class="mobile-nav-cart-badge" id="mobile-cart-count">0</span>
+    </button>
+    <a href="https://wa.me/{{ whatsapp_number }}" target="_blank" rel="noopener" class="mobile-nav-item" style="color:#25D366;">
+        <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/></svg>
+        <span>WhatsApp</span>
+    </a>
+</nav>
 
-        <div class="product-modal-header">
-            <div>
-                <span class="eyebrow">{{ t('modal.see_more') }}</span>
-                <h2 id="product-modal-title" data-product-modal-title>{{ t('modal.product') }}</h2>
+<!-- FLOATING CART REMINDER BAR (RAPPEL PANIER FLOTTANT) -->
+<aside class="floating-cart-bar" id="floating-cart-bar" aria-label="Rappel Panier" hidden>
+    <div class="floating-cart-container">
+        <button type="button" class="floating-cart-btn" data-drawer-open="cart">
+            <div class="floating-cart-left">
+                <span class="floating-cart-badge-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
+                        <path d="M3 6h18"></path>
+                        <path d="M16 10a4 4 0 0 1-8 0"></path>
+                    </svg>
+                    <span class="floating-cart-badge" id="floating-cart-badge">0</span>
+                </span>
+                <div class="floating-cart-info">
+                    <span class="floating-cart-title">{{ t('nav.cart') }}</span>
+                    <span class="floating-cart-total" id="floating-cart-total">0.00 DH</span>
+                </div>
             </div>
-            <button type="button" class="product-modal-close" data-product-modal-close aria-label="{{ t('modal.close') }}">{{ t('modal.close') }}</button>
+            <div class="floating-cart-right">
+                <span>{{ t('drawer.cart_title') }}</span>
+                <span class="floating-cart-arrow">→</span>
+            </div>
+        </button>
+    </div>
+</aside>
+
+<!-- 6. SLIDE-OVER DRAWER CART (MINI-PANIER COULISSANT) -->
+<div class="cart-drawer-backdrop" data-drawer-backdrop="cart"></div>
+<aside class="cart-drawer-panel" id="cart-drawer" data-drawer-panel="cart" role="dialog" aria-modal="true" aria-labelledby="drawer-cart-title">
+    <div class="cart-drawer-header">
+        <h2 id="drawer-cart-title">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path>
+                <path d="M3 6h18"></path>
+                <path d="M16 10a4 4 0 0 1-8 0"></path>
+            </svg>
+            {{ t('drawer.cart_title') }}
+        </h2>
+        <div class="cart-drawer-header-actions">
+            <button type="button" class="drawer-btn-clear" id="drawer-clear-btn" title="Vider le panier" aria-label="Vider le panier" hidden>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 6h18"></path>
+                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                </svg>
+                <span>Vider</span>
+            </button>
+            <button type="button" class="cart-drawer-close" data-drawer-close="cart" aria-label="{{ t('modal.close') }}">✕</button>
+        </div>
+    </div>
+
+    <div class="cart-drawer-body" id="drawer-items">
+        <!-- Rendered dynamically by app.js -->
+    </div>
+
+    <div class="cart-drawer-footer" id="drawer-footer">
+        <div class="drawer-total-row">
+            <span class="drawer-total-label">{{ t('drawer.total') }}</span>
+            <span class="drawer-total-value" id="drawer-total-val">0.00 DH</span>
+        </div>
+        <button type="button" class="drawer-btn-checkout" id="drawer-checkout-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/>
+            </svg>
+            <span>{{ t('drawer.checkout_whatsapp') }}</span>
+        </button>
+        <button type="button" class="drawer-btn-continue" data-drawer-close="cart">
+            ← Continuer mes achats
+        </button>
+    </div>
+</aside>
+
+<!-- 7. CATEGORY PRODUCTS POPUP MODAL (ACCÈS DIRECT SANS QUITTER L'ACCUEIL) -->
+<div class="cat-modal-backdrop" data-cat-modal-backdrop></div>
+<aside class="cat-modal-panel" id="cat-modal-panel" data-cat-modal-panel role="dialog" aria-modal="true" aria-labelledby="cat-modal-name">
+    <div class="cat-modal-drag-handle" aria-hidden="true"></div>
+    <div class="cat-modal-header">
+        <div class="cat-modal-header-titles">
+            <span class="cat-modal-badge" id="cat-modal-badge">Rayon</span>
+            <h2 class="cat-modal-title" id="cat-modal-name">Produits du rayon</h2>
+            <span class="cat-modal-count-sub" id="cat-modal-count-sub">Chargement...</span>
+        </div>
+        <button type="button" class="cat-modal-close" data-cat-modal-close aria-label="{{ t('modal.close') }}">✕</button>
+    </div>
+
+    <!-- Barre de recherche rapide dans le rayon -->
+    <div class="cat-modal-search-box">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+        <input type="search" id="cat-modal-search-input" placeholder="{{ t('category_modal.search_placeholder') }}" autocomplete="off">
+    </div>
+
+    <!-- Grille des produits du rayon -->
+    <div class="cat-modal-body" id="cat-modal-body">
+        <div class="cat-modal-loading">
+            <div class="cat-modal-spinner"></div>
+            <span>{{ t('category_modal.loading') }}</span>
+        </div>
+    </div>
+</aside>
+
+<!-- PRODUCT DETAIL SHOWCASE MODAL (GRAND FORMAT) -->
+<div class="product-modal" data-product-modal hidden>
+    <div class="product-modal-backdrop" data-product-modal-close aria-label="{{ t('modal.close') }}"></div>
+    <div class="product-modal-panel" role="dialog" aria-modal="true" aria-labelledby="product-modal-title">
+        <button type="button" class="product-modal-close-icon" data-product-modal-close aria-label="{{ t('modal.close') }}">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+
+        <!-- Image Grand Format -->
+        <div class="product-modal-visual" data-product-modal-visual>
+            <img data-product-modal-image alt="" loading="eager">
+            <div class="product-modal-fallback" data-product-modal-fallback hidden>🌿</div>
         </div>
 
-        <p class="product-modal-category" data-product-modal-category></p>
-        <p class="product-modal-description" data-product-modal-description></p>
+        <!-- Détails du produit -->
+        <div class="product-modal-body">
+            <div class="product-modal-meta">
+                <span class="product-modal-category-badge" data-product-modal-category></span>
+            </div>
+
+            <h2 id="product-modal-title" class="product-modal-title" data-product-modal-title>{{ t('modal.product') }}</h2>
+
+            <div class="product-modal-price-wrap">
+                <span class="product-modal-price" data-product-modal-price>0.00 DH</span>
+            </div>
+
+            <!-- Sélecteur de grammage / conditionnement si multi-poids -->
+            <div class="product-modal-weights" data-product-modal-weights hidden>
+                <span class="product-modal-weights-label">{{ t('home.product.weight_select') }}</span>
+                <div class="product-modal-chips" data-product-modal-chips></div>
+            </div>
+
+            <!-- Description complète avec défilement fluide -->
+            <div class="product-modal-desc-wrap">
+                <h4 class="product-modal-desc-title">Description</h4>
+                <p class="product-modal-description" data-product-modal-description></p>
+            </div>
+
+            <!-- Bouton d'action direct Ajouter au panier -->
+            <div class="product-modal-footer">
+                <button type="button" class="product-modal-add-btn" data-product-modal-add-btn>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                    <span>{{ t('home.product.add') }}</span>
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 

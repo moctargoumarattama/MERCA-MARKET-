@@ -1,12 +1,14 @@
-<div class="weight-options-editor" data-weight-options-editor>
+<div class="weight-options-editor" data-weight-options-editor {% if compact_weight_options %}data-weight-options-compact{% endif %}>
     <div class="weight-options-header">
-        <strong>Prix par poids</strong>
+        <strong>{{ t('admin.product.weight_options_title') }}</strong>
         <button type="button" class="button-secondary" data-weight-option-add>
-            Ajouter une ligne
+            {{ t('admin.product.add_weight_option') }}
         </button>
     </div>
 
-    <small class="field-help">Exemple : 100 g avec son prix, puis 200 g avec son prix.</small>
+    {% if not compact_weight_options %}
+        <small class="field-help">{{ t('admin.product.weight_options_hint') }}</small>
+    {% endif %}
 
     <div class="weight-options-list" data-weight-option-list>
         {% set options = form_weight_options if form_weight_options else [{'label': '', 'price': ''}] %}
@@ -14,7 +16,8 @@
             <div class="weight-option-row" data-weight-option-row>
                 <input
                     name="weight_label"
-                    placeholder="Poids : 100 g"
+                    placeholder="{{ '100 g' if compact_weight_options else t('admin.product.weight_label_placeholder') }}"
+                    aria-label="{{ t('admin.product.weight_label_placeholder') }}"
                     value="{{ option.label }}"
                     autocomplete="off"
                 >
@@ -23,16 +26,17 @@
                     type="number"
                     min="0"
                     step="0.01"
-                    placeholder="Prix : 15 DH"
+                    placeholder="{{ '15 DH' if compact_weight_options else t('admin.product.weight_price_placeholder') }}"
+                    aria-label="{{ t('admin.product.weight_price_placeholder') }}"
                     value="{% if option.price is defined and option.price != '' %}{{ '%.2f'|format(option.price) }}{% endif %}"
                 >
                 <button
                     type="button"
                     class="button-secondary weight-option-remove"
                     data-weight-option-remove
-                    aria-label="Supprimer cette ligne"
+                    aria-label="{{ t('admin.product.remove_weight_option') }}"
                 >
-                    Supprimer
+                    {% if compact_weight_options %}<span aria-hidden="true">×</span>{% else %}{{ t('admin.product.remove_weight_option') }}{% endif %}
                 </button>
             </div>
         {% endfor %}

@@ -1,0 +1,40 @@
+<article class="admin-product admin-product--compact" data-admin-product-id="{{ product.id }}" data-admin-product-category="{{ product.category_id or '' }}" data-admin-product-available="{{ 1 if product.available else 0 }}" data-admin-filter-item data-admin-filter-text="{{ product.name }} {{ product.description }} {{ product.category_name }}">
+    <div class="admin-product-media">
+        {% if product.image %}
+            <img src="{{ url_for('static', filename='images/' + product.image) }}" alt="{{ product.name }}">
+        {% else %}
+            <div class="no-image">MF</div>
+        {% endif %}
+    </div>
+
+    <div class="admin-product-body">
+        <small>{{ product.category_name or t('admin.product.no_category') }}</small>
+        <strong>{{ product.name }}</strong>
+        <div class="admin-product-meta">
+            {% set weight_options = product_weight_options(product) %}
+            {% if weight_options %}
+                {% for option in weight_options[:3] %}
+                    <span class="admin-product-price">{{ option.label }} : {{ "%.2f"|format(option.price) }} DH</span>
+                {% endfor %}
+                {% if weight_options|length > 3 %}
+                    <span class="admin-product-status">+{{ weight_options|length - 3 }}</span>
+                {% endif %}
+            {% else %}
+                <span class="admin-product-price">{{ "%.2f"|format(product.price) }} DH</span>
+            {% endif %}
+            <span class="admin-product-status">{{ t('admin.product.visible') if product.available else t('admin.product.hidden') }}</span>
+        </div>
+    </div>
+
+    <div class="admin-actions admin-actions--stack admin-product-actions">
+        <a href="{{ url_for('admin.edit_product', product_id=product.id) }}" class="button-secondary" data-admin-product-edit>{{ t('admin.catalogue.modify') }}</a>
+        <form method="post" action="{{ url_for('admin.toggle_product', product_id=product.id) }}" data-admin-product-action="toggle">
+            {% include "_csrf_token.html" %}
+            <button type="submit" class="button-secondary">{{ t('admin.product.hide') if product.available else t('admin.product.show') }}</button>
+        </form>
+        <form method="post" action="{{ url_for('admin.delete_product', product_id=product.id) }}" data-admin-product-action="delete">
+            {% include "_csrf_token.html" %}
+            <button class="button-secondary danger" type="submit">{{ t('admin.catalogue.delete') }}</button>
+        </form>
+    </div>
+</article>

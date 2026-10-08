@@ -3,15 +3,17 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#120a05">
+    <meta name="theme-color" content="#f8f6f1">
     <link rel="manifest" href="{{ url_for('static', filename='admin.webmanifest') }}">
     <link rel="icon" href="{{ url_for('static', filename='images/icon-192.png') }}" type="image/png">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/icon-192.png') }}">
     <title>{{ shop_name }} | {{ t('admin.space') }}</title>
     <link rel="preload" href="{{ url_for('static', filename='css/style.css', v=asset_version) }}" as="style">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css', v=asset_version) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin-product.css', v=asset_version) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin-accounts.css', v=asset_version) }}">
 </head>
-<body style="background:#120a05;margin:0">
+<body class="admin-page">
 
 <div class="page-shell">
     {% include "admin/_header.html" %}
@@ -35,20 +37,23 @@
                         <h1>{{ t('admin.overview.title') }}</h1>
                         <p class="section-subtitle">{{ t('admin.overview.subtitle') }}</p>
                     </div>
+                    <button type="button" class="button-primary admin-btn-add-prod" data-admin-open-add-product>
+                        <span class="btn-icon">＋</span> {{ t('admin.menu.add_product') }}
+                    </button>
                 </div>
 
                 <div class="dashboard-summary dashboard-summary--compact">
                     <div class="summary-card summary-card--compact summary-card--accent">
                         <span>{{ t('admin.stats.categories') }}</span>
-                        <strong>{{ stats.category_count }}</strong>
+                        <strong data-admin-stat="category_count">{{ stats.category_count }}</strong>
                     </div>
                     <div class="summary-card summary-card--compact">
                         <span>{{ t('admin.stats.products') }}</span>
-                        <strong>{{ stats.product_count }}</strong>
+                        <strong data-admin-stat="product_count">{{ stats.product_count }}</strong>
                     </div>
                     <div class="summary-card summary-card--compact">
                         <span>{{ t('admin.stats.visible') }}</span>
-                        <strong>{{ stats.active_product_count }}</strong>
+                        <strong data-admin-stat="active_product_count">{{ stats.active_product_count }}</strong>
                     </div>
                 </div>
 
@@ -78,7 +83,7 @@
                     {% endif %}
                 </section>
             </section>
-        {% elif panel == "catalogue" %}
+        {% elif panel == "catalogue" or panel == "add-product" %}
             <section class="admin-panel admin-panel--wide">
                 <div class="section-head">
                     <div>
@@ -86,6 +91,9 @@
                         <h1>{{ t('admin.catalogue.title') }}</h1>
                         <p class="section-subtitle">{{ t('admin.catalogue.subtitle') }}</p>
                     </div>
+                    <button type="button" class="button-primary admin-btn-add-prod" data-admin-open-add-product>
+                        <span class="btn-icon">＋</span> {{ t('admin.menu.add_product') }}
+                    </button>
                 </div>
 
                 <form method="post" action="{{ url_for('admin.add_category', panel='catalogue') }}" class="admin-form inline-form admin-inline-form">
@@ -96,7 +104,7 @@
 
                 <div class="admin-category-list">
                     {% for category in categories %}
-                        <article class="admin-category-item {% if selected_category_id == category.id %}is-active{% endif %}">
+                        <article class="admin-category-item {% if selected_category_id == category.id %}is-active{% endif %}" data-admin-category-id="{{ category.id }}">
                             <a class="admin-category-link" href="{{ url_for('admin.dashboard', panel='products', category=category.id) }}">
                                 <div class="admin-category-media">
                                     {% if category.cover_image %}
@@ -109,7 +117,7 @@
                                 </div>
                                 <div class="admin-category-body">
                                     <strong class="admin-category-title">{{ category.name }}</strong>
-                                    <span class="admin-category-count">{{ category.product_count }} {{ t('common.product') if category.product_count == 1 else t('common.products') }}</span>
+                                    <span class="admin-category-count" data-admin-category-card-count>{{ category.product_count }} {{ t('common.product') if category.product_count == 1 else t('common.products') }}</span>
                                 </div>
                             </a>
 
@@ -153,11 +161,16 @@
                         <div>
                             <span class="eyebrow">{{ t('admin.menu.products') }}</span>
                             <h1>{{ selected_category.name }}</h1>
-                            <p class="section-subtitle">
+                            <p class="section-subtitle" data-admin-products-count="{{ selected_category.id }}">
                                 {{ t('admin.category.edit_subtitle', count=selected_category.product_count) }}
                             </p>
                         </div>
-                        <a class="button-secondary" href="{{ url_for('admin.dashboard', panel='products') }}">{{ t('admin.products.choose_category') }}</a>
+                        <div class="section-head-actions">
+                            <button type="button" class="button-primary admin-btn-add-prod" data-admin-open-add-product data-preselect-category="{{ selected_category.id }}">
+                                <span class="btn-icon">＋</span> {{ t('admin.menu.add_product') }}
+                            </button>
+                            <a class="button-secondary" href="{{ url_for('admin.dashboard', panel='products') }}">{{ t('admin.products.choose_category') }}</a>
+                        </div>
                     </div>
 
                     <div class="admin-realtime-search" data-admin-filter-root>
@@ -171,50 +184,11 @@
                         <p class="admin-filter-empty" data-admin-filter-empty hidden>{{ t('admin.products.no_search_results') }}</p>
                     </div>
 
-                    <div class="admin-products admin-products--rows" data-admin-filter-list>
+                    <div class="admin-products admin-products--rows" data-admin-filter-list data-admin-products-category="{{ selected_category.id }}">
                         {% for product in category_products %}
-                            <article class="admin-product admin-product--compact" data-admin-filter-item data-admin-filter-text="{{ product.name }} {{ product.description }} {{ product.category_name }}">
-                                <div class="admin-product-media">
-                                    {% if product.image %}
-                                        <img src="{{ url_for('static', filename='images/' + product.image) }}" alt="{{ product.name }}">
-                                    {% else %}
-                                        <div class="no-image">MF</div>
-                                    {% endif %}
-                                </div>
-
-                                <div class="admin-product-body">
-                                    <small>{{ product.category_name or t('admin.product.no_category') }}</small>
-                                    <strong>{{ product.name }}</strong>
-                                    <div class="admin-product-meta">
-                                        {% set weight_options = product_weight_options(product) %}
-                                        {% if weight_options %}
-                                            {% for option in weight_options[:3] %}
-                                                <span class="admin-product-price">{{ option.label }} : {{ "%.2f"|format(option.price) }} DH</span>
-                                            {% endfor %}
-                                            {% if weight_options|length > 3 %}
-                                                <span class="admin-product-status">+{{ weight_options|length - 3 }}</span>
-                                            {% endif %}
-                                        {% else %}
-                                            <span class="admin-product-price">{{ "%.2f"|format(product.price) }} DH</span>
-                                        {% endif %}
-                                        <span class="admin-product-status">{{ t('admin.product.visible') if product.available else t('admin.product.hidden') }}</span>
-                                    </div>
-                                </div>
-
-                                <div class="admin-actions admin-actions--stack admin-product-actions">
-                                    <a href="{{ url_for('admin.edit_product', product_id=product.id) }}" class="button-secondary">{{ t('admin.catalogue.modify') }}</a>
-                                    <form method="post" action="{{ url_for('admin.toggle_product', product_id=product.id) }}">
-                                        {% include "_csrf_token.html" %}
-                                        <button type="submit" class="button-secondary">{{ t('admin.product.hide') if product.available else t('admin.product.show') }}</button>
-                                    </form>
-                                    <form method="post" action="{{ url_for('admin.delete_product', product_id=product.id) }}">
-                                        {% include "_csrf_token.html" %}
-                                        <button class="button-secondary danger" type="submit">{{ t('admin.catalogue.delete') }}</button>
-                                    </form>
-                                </div>
-                            </article>
+                            {% include "admin/_product_card.html" %}
                         {% else %}
-                            <div class="empty-state empty-state--compact">
+                            <div class="empty-state empty-state--compact" data-admin-products-empty>
                                 <h3>{{ t('admin.category.empty_products_title') }}</h3>
                                 <p>{{ t('admin.category.empty_products_body') }}</p>
                             </div>
@@ -227,6 +201,9 @@
                             <h1>{{ t('admin.products.choose_category') }}</h1>
                             <p class="section-subtitle">{{ t('admin.products.choose_category_subtitle') }}</p>
                         </div>
+                        <button type="button" class="button-primary admin-btn-add-prod" data-admin-open-add-product>
+                            <span class="btn-icon">＋</span> {{ t('admin.menu.add_product') }}
+                        </button>
                     </div>
 
                     <div class="admin-realtime-search" data-admin-filter-root>
@@ -242,8 +219,12 @@
 
                     <div class="admin-category-list" data-admin-filter-list>
                         {% for category in categories %}
-                            <article class="admin-category-item" data-admin-filter-item data-admin-filter-text="{{ category.name }}">
-                                <a class="admin-category-link" href="{{ url_for('admin.dashboard', panel='products', category=category.id) }}">
+                            <article class="admin-category-item" data-admin-category-id="{{ category.id }}" data-admin-filter-item data-admin-filter-text="{{ category.name }}">
+                                <a class="admin-category-link" href="{{ url_for('admin.dashboard', panel='products', category=category.id) }}"
+                                   data-admin-category-open
+                                   data-category-name="{{ category.name }}"
+                                   data-category-count="{{ category.product_count }}"
+                                   aria-haspopup="dialog" aria-controls="admin-category-modal">
                                     <div class="admin-category-media">
                                         {% if category.cover_image %}
                                             <img src="{{ url_for('static', filename='images/' + category.cover_image) }}" alt="{{ category.name }}">
@@ -255,7 +236,7 @@
                                     </div>
                                     <div class="admin-category-body">
                                         <strong class="admin-category-title">{{ category.name }}</strong>
-                                        <span class="admin-category-count">{{ category.product_count }} {{ t('common.product') if category.product_count == 1 else t('common.products') }}</span>
+                                        <span class="admin-category-count" data-admin-category-card-count>{{ category.product_count }} {{ t('common.product') if category.product_count == 1 else t('common.products') }}</span>
                                     </div>
                                 </a>
                             </article>
@@ -268,42 +249,44 @@
                     </div>
                 {% endif %}
             </section>
-        {% elif panel == "add-product" %}
-            <section class="admin-panel admin-panel--wide">
-                <div class="section-head">
-                    <div>
-                        <span class="eyebrow">{{ t('admin.product.kicker') }}</span>
-                        <h1>{{ t('admin.product.add_title') }}</h1>
-                        <p class="section-subtitle">{{ t('admin.product.add_subtitle') }}</p>
-                    </div>
-                    <a class="button-secondary" href="{{ url_for('admin.dashboard', panel='catalogue') }}">{{ t('admin.product.view_catalogue') }}</a>
-                </div>
-
-                <form method="post" action="{{ url_for('admin.add_product', panel='add-product') }}" enctype="multipart/form-data" class="admin-form admin-product-form">
-                    {% include "_csrf_token.html" %}
-                    <input name="name" placeholder="{{ t('admin.product.name_placeholder') }}" required>
-                    <textarea name="description" placeholder="{{ t('admin.product.description_placeholder') }}"></textarea>
-                    <input name="price" type="number" min="0" step="0.01" placeholder="{{ t('admin.product.price_placeholder') }}">
-                    {% set form_weight_options = [] %}
-                    {% include "admin/_weight_options_fields.html" %}
-                    <select name="category_id" required>
-                        <option value="" disabled {% if not selected_category_id %}selected{% endif %}>{{ t('admin.product.select_category') }}</option>
-                        {% for category in categories %}
-                            <option value="{{ category.id }}" {% if selected_category_id == category.id %}selected{% endif %}>{{ category.name }}</option>
-                        {% endfor %}
-                    </select>
-                    <input name="image" type="file" accept=".jpg,.jpeg,.png,.webp,.gif">
-                    <label class="checkbox-label">
-                        <input type="checkbox" name="available" checked>
-                        {{ t('admin.product.available') }}
-                    </label>
-                    <button type="submit" class="button-primary">{{ t('admin.product.save') }}</button>
-                </form>
-            </section>
         {% endif %}
     </main>
 </div>
 
+{% if panel == "products" %}
+<dialog class="admin-category-modal" id="admin-category-modal" data-admin-category-modal aria-labelledby="admin-category-modal-title">
+    <div class="admin-category-modal-header">
+        <div>
+            <span class="eyebrow">{{ t('admin.menu.products') }}</span>
+            <h2 id="admin-category-modal-title">{{ t('admin.products.choose_category') }}</h2>
+            <p class="section-subtitle" data-admin-category-count></p>
+        </div>
+        <button type="button" class="admin-category-modal-close" data-admin-category-close aria-label="{{ t('modal.close') }}" autofocus>✕</button>
+    </div>
+    <div class="admin-category-modal-toolbar">
+        <button type="button" class="button-primary admin-btn-add-prod" data-admin-open-add-product data-preselect-category="" hidden>{{ t('admin.menu.add_product') }}</button>
+    </div>
+    <div class="admin-category-modal-content" data-admin-category-content aria-live="polite"></div>
+</dialog>
+{% endif %}
+
+<template data-admin-products-empty-template>
+    <div class="empty-state empty-state--compact" data-admin-products-empty>
+        <h3>{{ t('admin.category.empty_products_title') }}</h3>
+        <p>{{ t('admin.category.empty_products_body') }}</p>
+    </div>
+</template>
+
+{% include "admin/_add_product_modal.html" %}
+{% include "admin/_edit_product_modal.html" %}
+
+<!-- Bouton d'action flottant sur mobile pour ajouter en 1 clic sans scroller -->
+<button type="button" class="admin-mobile-fab-add" data-admin-open-add-product aria-label="{{ t('admin.menu.add_product') }}">
+    <span class="fab-icon">＋</span>
+    <span class="fab-label">Produit</span>
+</button>
+
 <script src="{{ url_for('static', filename='js/app.js', v=asset_version) }}"></script>
+<script src="{{ url_for('static', filename='js/admin-products.js', v=asset_version) }}"></script>
 </body>
 </html>

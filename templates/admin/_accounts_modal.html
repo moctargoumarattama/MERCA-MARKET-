@@ -1,0 +1,14 @@
+<dialog class="admin-accounts-panel admin-accounts-modal" id="admin-accounts-modal" data-admin-accounts-modal
+    data-url="{{ url_for('admin.manage_admins') }}"
+    aria-labelledby="admin-accounts-title"
+    {% if request.endpoint == 'admin.manage_admins' %}open data-auto-open="true" data-return-url="{{ url_for('admin.dashboard') }}"{% endif %}>
+    <header class="admin-accounts-heading">
+        <h2 id="admin-accounts-title">{{ t('admin.admins.title') }}</h2>
+        <button type="button" class="admin-accounts-close" data-admin-accounts-close aria-label="{{ t('modal.close') }}" autofocus>✕</button>
+    </header>
+    <div class="admin-accounts-body" data-admin-accounts-content aria-live="polite">
+        {% if request.endpoint == 'admin.manage_admins' %}
+            {% include "admin/_accounts_content.html" %}
+        {% endif %}
+    </div>
+</dialog>

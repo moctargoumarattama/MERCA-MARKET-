@@ -1,0 +1,61 @@
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="flash-stack">
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+{% if can_manage_admins %}
+    <form method="post" action="{{ url_for('admin.manage_admins') }}" class="admin-account-card admin-account-form">
+        {% include "_csrf_token.html" %}
+        <input type="hidden" name="action" value="create">
+        <input type="text" name="username" placeholder="{{ t('admin.admins.username_example') }}" aria-label="{{ t('admin.admins.username') }}" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+        <input type="password" name="password" placeholder="{{ t('admin.admins.password') }}" aria-label="{{ t('admin.admins.password') }}" autocomplete="new-password" required>
+        <button type="submit" class="admin-account-submit">{{ t('admin.admins.submit') }}</button>
+    </form>
+{% else %}
+    <p class="admin-accounts-empty">{{ t('flash.admin_access_denied') }}</p>
+{% endif %}
+
+<div class="admin-accounts-list">
+    <div class="admin-account-card admin-account-primary">
+        <span class="admin-account-role">{{ t('admin.admins.primary_label') }}</span>
+        <strong>{{ primary_admin }}</strong>
+    </div>
+
+    {% if secondary_admins %}
+        {% for admin in secondary_admins %}
+            <div class="admin-account-card">
+                <div class="admin-account-summary">
+                    <div class="admin-account-identity">
+                        <span class="admin-account-role">{{ t('admin.admins.secondary_label') }}</span>
+                        <strong>{{ admin.username }}</strong>
+                    </div>
+                    {% if can_manage_admins %}
+                        <form method="post" action="{{ url_for('admin.manage_admins') }}" onsubmit="return confirm('{{ t('admin.admins.confirm_delete') }}');">
+                            {% include "_csrf_token.html" %}
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="username" value="{{ admin.username }}">
+                            <button type="submit" class="admin-account-delete">{{ t('admin.admins.delete') }}</button>
+                        </form>
+                    {% endif %}
+                </div>
+                {% if can_manage_admins %}
+                    <form method="post" action="{{ url_for('admin.manage_admins') }}" class="admin-account-form">
+                        {% include "_csrf_token.html" %}
+                        <input type="hidden" name="action" value="update">
+                        <input type="hidden" name="username" value="{{ admin.username }}">
+                        <input type="text" name="new_username" value="{{ admin.username }}" aria-label="{{ t('admin.admins.username') }}" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+                        <input type="password" name="password" placeholder="{{ t('admin.admins.new_password') }}" aria-label="{{ t('admin.admins.new_password') }}" autocomplete="new-password">
+                        <button type="submit" class="admin-account-submit">{{ t('admin.admins.update') }}</button>
+                    </form>
+                {% endif %}
+            </div>
+        {% endfor %}
+    {% else %}
+        <p class="admin-accounts-empty">{{ t('admin.admins.empty.title') }}</p>
+    {% endif %}
+</div>

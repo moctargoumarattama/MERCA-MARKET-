@@ -1,74 +1,77 @@
 {% extends "base.html" %}
-{% block title %}{{ shop_name }} | {{ t('home.page_title') }}{% endblock %}
+{% block title %}{{ shop_name }} | {% if active_category %}{{ active_category.name }}{% else %}{{ t('home.hero.title_compact') }}{% endif %}{% endblock %}
 
 {% block content %}
-<section class="hero hero-home">
-    <div class="section hero-grid hero-grid--simple">
-        <div class="hero-copy">
-            <h1>{{ t('home.hero.title') }}</h1>
-            <p>{{ t('home.hero.subtitle') }}</p>
-
-        </div>
-
-        <div class="hero-visual" aria-hidden="true">
-            <div class="hero-visual-frame">
-                <img src="{{ url_for('static', filename='images/3.png') }}" alt="">
-            </div>
-        </div>
+<!-- 1. HERO SHOWCASE (PHOTO 2 TEXT REMOVED, CENTRED & CLEAN) -->
+<section class="hero-showcase-section">
+    <div class="hero-showcase-circle-wrap">
+        <img src="{{ url_for('static', filename='images/3.png') }}" alt="{{ shop_name }}" class="hero-showcase-circle" loading="eager">
     </div>
 </section>
 
-<section class="section search-section" id="search">
-    <div class="search-live search-live--home" data-live-search-root>
-        <div class="search-live-bar">
-            <span class="search-live-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" role="presentation" focusable="false">
-                    <path d="M10.5 4a6.5 6.5 0 1 1 4.07 11.57l4.43 4.43-1.41 1.41-4.43-4.43A6.5 6.5 0 0 1 10.5 4Zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z"></path>
-                </svg>
-            </span>
-            <input
-                id="home-search"
-                type="search"
-                placeholder="{{ t('home.search.placeholder') }}"
-                aria-label="{{ t('home.search.aria') }}"
-                autocomplete="off"
-                data-live-search-input
-            >
-        </div>
-        <div class="search-live-results" data-live-search-results hidden></div>
+{% if not has_filters %}
+<!-- 2. MODE ACCUEIL : RAYONS AVEC BARRE DE RECHERCHE FINE & ÉLARGIE (PHOTO 3) -->
+<section class="categories-department-section" id="categories">
+    <div class="categories-header-block">
+        <span class="categories-eyebrow">{{ t('home.categories.eyebrow') }}</span>
+        <h2 class="categories-main-title">{{ t('home.categories.title') }}</h2>
     </div>
-</section>
 
-<section class="section section-block" id="categories">
-    <div class="section-head section-head--center">
-        <div>
-            <span class="eyebrow">{{ t('home.categories.eyebrow') }}</span>
-            <h2>{{ t('home.categories.title') }}</h2>
+    <!-- BARRE DE RECHERCHE FINE & ÉLARGIE SUR TOUTE LA PAGE (PHOTO 3) -->
+    <div class="category-search-fullwidth">
+        <div class="category-search-bar">
+            <svg class="category-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.3-4.3"></path>
+            </svg>
+            <input type="search" id="category-filter-input" placeholder="{{ t('home.categories.filter_placeholder') }}" aria-label="{{ t('home.categories.filter_placeholder') }}" autocomplete="off">
         </div>
     </div>
 
-    <div class="category-grid category-grid--gallery">
+    <div class="category-departments-grid" id="category-departments-grid">
         {% for category in categories %}
             <a
-                class="category-card category-card--gallery {% if selected_category == category.id %}is-active{% endif %}"
+                class="category-dept-card"
                 href="{{ url_for('public.index', category=category.id) }}#products"
+                data-category-id="{{ category.id }}"
+                data-category-name="{{ category.name }}"
+                data-category-count="{{ category.product_count or 0 }}"
             >
-                <div class="category-media">
+                <div class="category-dept-media">
                     {% if category.cover_image %}
-                        <img src="{{ url_for('static', filename='images/' + category.cover_image) }}" alt="{{ category.name }}">
+                        <img src="{{ url_for('static', filename='images/' + category.cover_image) }}" alt="{{ category.name }}" loading="lazy">
                     {% else %}
-                        <div class="category-fallback">
-                            <span>{{ category.name[:1] | upper }}</span>
+                        <div class="category-dept-fallback">
+                            {% if "sec" in category.name.lower() or "fruit" in category.name.lower() or "noix" in category.name.lower() or "amande" in category.name.lower() %}
+                                🌰
+                            {% elif "cosm" in category.name.lower() or "argan" in category.name.lower() or "soin" in category.name.lower() or "beaut" in category.name.lower() %}
+                                🧴
+                            {% elif "miel" in category.name.lower() or "ruche" in category.name.lower() %}
+                                🍯
+                            {% elif "date" in category.name.lower() or "figue" in category.name.lower() %}
+                                🌴
+                            {% elif "épice" in category.name.lower() or "epice" in category.name.lower() or "grain" in category.name.lower() or "safran" in category.name.lower() %}
+                                🌾
+                            {% elif "coffret" in category.name.lower() or "pack" in category.name.lower() or "cadeau" in category.name.lower() %}
+                                🎁
+                            {% elif "huile" in category.name.lower() or "olive" in category.name.lower() %}
+                                🫒
+                            {% else %}
+                                🍃
+                            {% endif %}
                         </div>
                     {% endif %}
+                    {% if category.product_count %}
+                        <span class="category-dept-count">{{ category.product_count }} art.</span>
+                    {% endif %}
                 </div>
-                <div class="category-body">
+                <div class="category-dept-info">
                     <strong>{{ category.name }}</strong>
-                    <span>{% if selected_category == category.id %}{{ t('home.categories.active') }}{% else %}{{ t('home.categories.view_products') }}{% endif %}</span>
+                    <span class="category-dept-action">{{ t('home.categories.view_products') }} →</span>
                 </div>
             </a>
         {% else %}
-            <div class="empty-state">
+            <div class="empty-state" style="grid-column: 1 / -1; text-align:center; padding: 40px; background:#fff; border-radius:18px;">
                 <h3>{{ t('home.categories.empty.title') }}</h3>
                 <p>{{ t('home.categories.empty.body') }}</p>
             </div>
@@ -76,88 +79,126 @@
     </div>
 </section>
 
-{% if selected_category or q %}
-<section class="section section-block">
-    <div class="content-panel catalog-filter-strip {% if selected_category %}catalog-filter-strip--category{% endif %}">
-        <div class="catalog-filter-copy">
-            <span class="eyebrow">{{ t('home.filter.eyebrow') }}</span>
-            <h2>
+{% else %}
+
+<!-- 3. MODE RAYON ACTIF : AFFICHAGE ÉPURÉ DES PRODUITS DE LA CATÉGORIE -->
+<section class="category-products-view" id="products">
+    <!-- Header du Rayon Actif avec bouton retour -->
+    <div class="category-active-header">
+        <a href="{{ url_for('public.index') }}" class="btn-back-departments">
+            ← {{ t('home.categories.all_departments') }}
+        </a>
+
+        <div class="category-active-titles">
+            <span class="eyebrow">
                 {% if selected_category %}
-                    {% if active_category %}
-                        {{ t('home.filter.category_prefix') }}: {{ active_category.name }}
-                    {% else %}
-                        {{ t('home.filter.category_selected') }}
-                    {% endif %}
+                    {{ t('home.filter.category_prefix') }}
                 {% else %}
-                    {{ t('home.filter.search_prefix') }}: "{{ q }}"
+                    {{ t('home.filter.search_prefix') }}
                 {% endif %}
-            </h2>
-            <p>{{ t('home.filter.results', count=results_count, suffix=plural_suffix(results_count)) }}</p>
+            </span>
+            <h1 class="category-active-name">
+                {% if selected_category %}
+                    {{ active_category.name if active_category else t('home.filter.category_selected') }}
+                {% else %}
+                    "{{ q }}"
+                {% endif %}
+            </h1>
+            <p class="category-active-subtitle">
+                {{ t('home.filter.results', count=results_count, suffix=plural_suffix(results_count)) }}
+            </p>
         </div>
-
-        <a class="button-primary" href="{{ url_for('public.index') }}">{{ t('home.filter.back') }}</a>
     </div>
-</section>
-{% endif %}
 
-<section class="section section-block" id="products">
-    {% if selected_category or q %}
-        <div class="section-head section-head--center">
-            <div>
-                <span class="eyebrow">{% if selected_category %}{{ t('home.results.by_category') }}{% else %}{{ t('home.results.by_search') }}{% endif %}</span>
-                <h2>{% if selected_category %}{{ active_category.name if active_category else t('home.filter.category_selected') }}{% else %}{{ t('home.filter.search_prefix') }}: {{ q }}{% endif %}</h2>
-                <p class="section-subtitle">
-                    {% if selected_category %}
-                        {{ t('home.results.subtitle.category', count=results_count, suffix=plural_suffix(results_count)) }}
+    <!-- Sélecteur rapide horizontal pour zapper entre les catégories sans recharger -->
+    <div class="category-pills-bar">
+        <a href="{{ url_for('public.index') }}" class="category-pill-chip">
+            ✨ {{ t('home.categories.all_departments') }}
+        </a>
+        {% for cat in categories %}
+            <a
+                href="{{ url_for('public.index', category=cat.id) }}#products"
+                class="category-pill-chip {% if selected_category == cat.id %}is-active{% endif %}"
+            >
+                {{ cat.name }}
+            </a>
+        {% endfor %}
+    </div>
+
+    <!-- Grille des produits de ce rayon -->
+    <div class="product-grid">
+        {% for product in products %}
+            {% set weight_options = product_weight_options(product) %}
+            {% set display_price = product_display_price(product) %}
+            <article class="product-card" data-product-id="{{ product.id }}">
+                <div class="product-media"
+                    data-show-description
+                    data-product-id="{{ product.id }}"
+                    data-product-name="{{ product.name|e }}"
+                    data-product-description="{{ (product.description or t('home.product.no_description'))|e }}"
+                    data-product-category="{{ (product.category_name or t('home.product.category_empty'))|e }}"
+                    data-product-image="{{ (product.image or '')|e }}"
+                    data-product-price="{{ display_price }}"
+                    data-product-weights='{{ weight_options|tojson|e if weight_options else "[]" }}'
+                    role="button"
+                    tabindex="0"
+                    title="{{ product.name }} - {{ t('home.product.see_more') }}"
+                >
+                    {% if product.image %}
+                        <img src="{{ url_for('static', filename='images/' + product.image) }}" alt="{{ product.name }}" loading="lazy">
                     {% else %}
-                        {{ t('home.results.subtitle.search', count=results_count, suffix=plural_suffix(results_count)) }}
+                        <div class="no-image">🌿</div>
                     {% endif %}
-                </p>
-            </div>
-        </div>
+                    <span class="product-media-zoom-hint" aria-hidden="true" title="Agrandir">🔍</span>
+                </div>
 
-        <div class="product-grid product-grid--compact">
-            {% for product in products %}
-                {% set weight_options = product_weight_options(product) %}
-                {% set display_price = product_display_price(product) %}
-                <article class="product-card product-card--compact">
-                    <div class="product-media">
-                        {% if product.image %}
-                            <img src="{{ url_for('static', filename='images/' + product.image) }}" alt="{{ product.name }}">
-                        {% else %}
-                            <div class="no-image">MF</div>
-                        {% endif %}
+                <div class="product-info">
+                    <span class="product-category-chip">{{ product.category_name or t('home.product.category_empty') }}</span>
+                    <h3
+                        data-show-description
+                        data-product-id="{{ product.id }}"
+                        data-product-name="{{ product.name|e }}"
+                        data-product-description="{{ (product.description or t('home.product.no_description'))|e }}"
+                        data-product-category="{{ (product.category_name or t('home.product.category_empty'))|e }}"
+                        data-product-image="{{ (product.image or '')|e }}"
+                        data-product-price="{{ display_price }}"
+                        data-product-weights='{{ weight_options|tojson|e if weight_options else "[]" }}'
+                        style="cursor: pointer;"
+                        title="{{ product.name }} - {{ t('home.product.see_more') }}"
+                    >{{ product.name }}</h3>
+
+                    {% if weight_options %}
+                        <div class="product-weight-chips" data-weight-chips-group>
+                            {% for option in weight_options %}
+                                <button
+                                    type="button"
+                                    class="weight-chip-btn {% if loop.first %}is-selected{% endif %}"
+                                    data-weight-label="{{ option.label }}"
+                                    data-weight-price="{{ option.price }}"
+                                    title="{{ option.label }}"
+                                >
+                                    {{ option.label }}
+                                </button>
+                            {% endfor %}
+                        </div>
+
+                        <select class="product-weight-select" data-product-weight-select aria-label="{{ t('home.product.weight_select') }}">
+                            {% for option in weight_options %}
+                                <option value="{{ option.label }}" data-price="{{ option.price }}" {% if loop.first %}selected{% endif %}>
+                                    {{ option.label }} - {{ "%.2f"|format(option.price) }} DH
+                                </option>
+                            {% endfor %}
+                        </select>
+                    {% endif %}
+
+                    <div class="product-price-row">
+                        <span class="product-price-value" data-product-price-display>{{ "%.2f"|format(display_price) }} DH</span>
                     </div>
 
-                    <div class="product-info">
-                        <small>{{ product.category_name or t('home.product.category_empty') }}</small>
-                        <h3>{{ product.name }}</h3>
-                        <div class="price-row">
-                            <strong data-product-price-display>{{ "%.2f"|format(display_price) }} DH</strong>
-                        </div>
-                        {% if weight_options %}
-                            <select class="product-weight-select" data-product-weight-select aria-label="{{ t('home.product.weight_select') }}">
-                                {% for option in weight_options %}
-                                    <option value="{{ option.label }}" data-price="{{ option.price }}" {% if loop.first %}selected{% endif %}>
-                                        {{ option.label }} - {{ "%.2f"|format(option.price) }} DH
-                                    </option>
-                                {% endfor %}
-                            </select>
-                        {% endif %}
+                    <div class="product-actions-wrap">
                         <button
                             type="button"
-                            class="product-more"
-                            data-show-description
-                            data-product-name="{{ product.name|e }}"
-                            data-product-description="{{ (product.description or t('home.product.no_description'))|e }}"
-                            data-product-category="{{ (product.category_name or t('home.product.category_empty'))|e }}"
-                            data-product-image="{{ (product.image or '')|e }}"
-                        >
-                            {{ t('home.product.see_more') }}
-                        </button>
-                        <button
-                            type="button"
-                            class="button-primary"
+                            class="btn-add-cart-modern"
                             data-cart-add
                             data-product-id="{{ product.id }}"
                             data-product-name="{{ product.name|e }}"
@@ -165,24 +206,39 @@
                             data-product-image="{{ product.image|e }}"
                             data-product-weight-label="{{ (weight_options[0].label if weight_options else '')|e }}"
                         >
-                            {{ t('home.product.add') }}
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                            <span>{{ t('home.product.add') }}</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            class="btn-details-icon"
+                            data-show-description
+                            data-product-id="{{ product.id }}"
+                            data-product-name="{{ product.name|e }}"
+                            data-product-description="{{ (product.description or t('home.product.no_description'))|e }}"
+                            data-product-category="{{ (product.category_name or t('home.product.category_empty'))|e }}"
+                            data-product-image="{{ (product.image or '')|e }}"
+                            data-product-price="{{ display_price }}"
+                            data-product-weights='{{ weight_options|tojson|e if weight_options else "[]" }}'
+                            aria-label="{{ t('home.product.see_more') }}"
+                            title="{{ t('home.product.see_more') }}"
+                        >
+                            ℹ
                         </button>
                     </div>
-                </article>
-            {% else %}
-                <div class="empty-state">
-                    <h3>{{ t('home.products.empty.title') }}</h3>
-                    <p>
-                        {% if active_category %}
-                            {{ t('home.products.empty.by_category') }}
-                        {% elif q %}
-                            {{ t('home.products.empty.by_search') }}
-                        {% endif %}
-                    </p>
-                    <a class="button-primary" href="{{ url_for('public.index') }}">{{ t('home.products.back') }}</a>
                 </div>
-            {% endfor %}
-        </div>
-    {% endif %}
+            </article>
+        {% else %}
+            <div class="empty-state" style="grid-column:1 / -1;text-align:center;padding:40px 16px;background:#FFFFFF;border-radius:var(--radius-lg);border:1px solid var(--color-border-light);">
+                <h3>{{ t('home.products.empty.title') }}</h3>
+                <p style="color:var(--color-text-muted);">
+                    {{ t('home.products.empty.by_category') }}
+                </p>
+                <a class="btn-back-departments" href="{{ url_for('public.index') }}" style="display:inline-block;margin-top:12px;">← {{ t('home.categories.all_departments') }}</a>
+            </div>
+        {% endfor %}
+    </div>
 </section>
+{% endif %}
 {% endblock %}

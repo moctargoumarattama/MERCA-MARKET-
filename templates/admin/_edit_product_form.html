@@ -1,0 +1,54 @@
+<form method="post" action="{{ url_for('admin.edit_product', product_id=product.id) }}" enctype="multipart/form-data" class="admin-form admin-product-form admin-edit-product-form modal-form-body" data-admin-edit-product-form>
+    {% include "_csrf_token.html" %}
+    {% set form_weight_options = product_weight_options(product) %}
+
+    <div class="modal-form-scroll">
+        <p class="admin-product-error" data-admin-product-error role="alert" hidden></p>
+
+        <div class="modal-card grid-2col-compact">
+            <div class="field-group">
+                <input name="name" placeholder="{{ t('admin.product.name_example') }}" aria-label="{{ t('admin.product.name_placeholder') }}" value="{{ product.name }}" required>
+            </div>
+            <div class="field-group">
+                <select name="category_id" aria-label="{{ t('admin.product.category_placeholder') }}" required>
+                    <option value="" disabled {% if not product.category_id %}selected{% endif %}>{{ t('admin.product.select_category') }}</option>
+                    {% for category in categories %}
+                        <option value="{{ category.id }}" {% if category.id == product.category_id %}selected{% endif %}>{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="modal-card pricing-card">
+            <div class="currency-input-box">
+                <input name="price" type="number" min="0" step="0.01" placeholder="45" aria-label="{{ t('admin.product.price_placeholder') }}" value="{% if not form_weight_options %}{{ product.price }}{% endif %}" class="price-num-input">
+                <span class="currency-tag">DH</span>
+            </div>
+            {% set compact_weight_options = true %}
+            {% include "admin/_weight_options_fields.html" %}
+        </div>
+
+        <div class="modal-card admin-edit-product-media">
+            <input name="image" type="file" accept=".jpg,.jpeg,.png,.webp,.gif" aria-label="{{ t('admin.product.photo') }}">
+            {% if product.image %}
+                <div class="product-preview">
+                    <img src="{{ url_for('static', filename='images/' + product.image) }}" alt="{{ product.name }}">
+                </div>
+            {% endif %}
+            <textarea name="description" rows="2" placeholder="{{ t('admin.product.description_example') }}" aria-label="{{ t('admin.product.description_placeholder') }}" class="compact-textarea">{{ product.description }}</textarea>
+        </div>
+
+        <div class="modal-card toggle-card">
+            <label class="switch-row checkbox-label">
+                <input type="checkbox" name="available" value="1" {% if product.available %}checked{% endif %} class="switch-checkbox">
+                <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+                <span class="switch-text"><strong>{{ t('admin.product.available') }}</strong></span>
+            </label>
+        </div>
+    </div>
+
+    <footer class="admin-modal-footer">
+        <a class="btn-cancel button-secondary" href="{% if product.category_id %}{{ url_for('admin.dashboard', panel='products', category=product.category_id) }}{% else %}{{ url_for('admin.dashboard', panel='catalogue') }}{% endif %}" data-admin-edit-product-close>{{ t('common.cancel') }}</a>
+        <button type="submit" class="button-primary btn-submit-gold" data-admin-edit-product-submit>{{ t('admin.product.save_changes') }}</button>
+    </footer>
+</form>

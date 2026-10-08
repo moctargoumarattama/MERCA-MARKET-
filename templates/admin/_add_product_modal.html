@@ -1,0 +1,132 @@
+<dialog class="admin-product-modal" id="admin-add-product-modal" data-admin-add-product-modal aria-labelledby="admin-add-product-modal-title" {% if panel == "add-product" %}data-auto-open="true"{% endif %}>
+    <div class="admin-product-modal-dialog">
+        <header class="admin-modal-header">
+            <div class="modal-title-group">
+                <h2 id="admin-add-product-modal-title" class="modal-heading">{{ t('admin.product.add_title') }}</h2>
+            </div>
+            <button type="button" class="modal-close-circle" data-admin-add-product-close aria-label="{{ t('modal.close') }}">✕</button>
+        </header>
+
+        <form method="post" action="{{ url_for('admin.add_product', panel='add-product') }}" enctype="multipart/form-data" class="admin-form admin-product-form modal-form-body" id="admin-add-product-form" data-admin-add-product-form>
+            {% include "_csrf_token.html" %}
+
+            <div class="modal-form-scroll">
+                <p class="admin-product-error" data-admin-product-error role="alert" hidden></p>
+                <div class="modal-card">
+                    <div class="grid-2col-compact">
+                        <div class="field-group">
+                            <label class="admin-field-label" for="admin-product-name-input">
+                                <span>{{ t('admin.product.name_placeholder') }}</span> <strong class="req">*</strong>
+                            </label>
+                            <input
+                                name="name"
+                                id="admin-product-name-input"
+                                placeholder="{{ t('admin.product.name_example') }}"
+                                required
+                                autocomplete="off"
+                                class="compact-input"
+                            >
+                        </div>
+
+                        <div class="field-group">
+                            <label class="admin-field-label" for="admin-product-category-select">
+                                <span>{{ t('admin.product.category_placeholder') }}</span> <strong class="req">*</strong>
+                            </label>
+                            <select name="category_id" id="admin-product-category-select" required class="compact-select">
+                                <option value="" disabled {% if not selected_category_id %}selected{% endif %}>{{ t('admin.product.category_placeholder') }}</option>
+                                {% for category in categories %}
+                                    <option value="{{ category.id }}" {% if selected_category_id == category.id %}selected{% endif %}>{{ category.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-card pricing-card">
+                    <div class="pricing-top-row">
+                        <div class="field-group simple-price-group">
+                            <label class="admin-field-label" for="admin-product-price-input">
+                                <span>{{ t('admin.product.standard_price') }}</span>
+                            </label>
+                            <div class="currency-input-box">
+                                <input
+                                    name="price"
+                                    id="admin-product-price-input"
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    placeholder="45"
+                                    class="compact-input price-num-input"
+                                >
+                                <span class="currency-tag">DH</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% set form_weight_options = [] %}
+                    {% set compact_weight_options = true %}
+                    {% include "admin/_weight_options_fields.html" %}
+                </div>
+
+                <div class="modal-card media-card">
+                    <div class="media-row-compact">
+                        <div class="photo-picker-container" data-image-upload-box>
+                            <input
+                                name="image"
+                                type="file"
+                                accept=".jpg,.jpeg,.png,.webp,.gif"
+                                id="admin-product-file-input"
+                                class="file-hidden-input"
+                                data-file-input
+                                aria-label="{{ t('admin.product.photo') }}"
+                            >
+                            <label for="admin-product-file-input" class="photo-dropzone-box" data-file-dropzone>
+                                <span class="photo-ico" aria-hidden="true">📷</span>
+                                <span class="photo-txt">{{ t('admin.product.photo') }}</span>
+                            </label>
+                            <div class="photo-preview-box" data-image-preview hidden>
+                                <img src="" alt="{{ t('admin.product.photo_preview') }}" class="photo-preview-thumb" data-preview-img>
+                                <button type="button" class="photo-remove-btn" data-preview-clear aria-label="{{ t('admin.product.remove_photo') }}">✕</button>
+                            </div>
+                        </div>
+
+                        <div class="desc-container">
+                            <label class="admin-field-label" for="admin-product-desc-input">
+                                <span>{{ t('admin.product.description_placeholder') }}</span>
+                            </label>
+                            <textarea
+                                name="description"
+                                id="admin-product-desc-input"
+                                rows="2"
+                                placeholder="{{ t('admin.product.description_example') }}"
+                                class="compact-textarea"
+                            ></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-card toggle-card">
+                    <label class="switch-row">
+                        <input type="checkbox" name="available" value="1" checked class="switch-checkbox">
+                        <span class="switch-track" aria-hidden="true">
+                            <span class="switch-thumb"></span>
+                        </span>
+                        <span class="switch-text">
+                            <strong>{{ t('admin.product.available') }}</strong>
+                        </span>
+                    </label>
+                </div>
+            </div>
+
+            <footer class="admin-modal-footer">
+                <button type="button" class="btn-cancel" data-admin-add-product-close>
+                    {{ t('common.cancel') }}
+                </button>
+                <button type="submit" class="btn-submit-gold" id="admin-add-product-submit">
+                    <span class="btn-submit-ico">✓</span>
+                    <span class="btn-submit-txt">{{ t('admin.product.save') }}</span>
+                </button>
+            </footer>
+        </form>
+    </div>
+</dialog>

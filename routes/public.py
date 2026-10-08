@@ -307,6 +307,7 @@ def index():
         selected_category=category_id,
         active_category=active_category,
         results_count=len(products),
+        has_filters=has_filters,
     )
 
 
@@ -330,9 +331,31 @@ def cart():
     return render_template("cart.html")
 
 
+@public_bp.route("/api/category/<int:category_id>/products")
 @public_bp.route("/api/products")
-def api_products():
+def api_products(category_id=None):
+    if category_id is None:
+        category_id = request.args.get("category", type=int)
+
     db = get_db()
+    if category_id:
+        rows = db.execute(
+            """
+            SELECT p.id, p.name, p.description, p.price, p.weight_options, p.image,
+                   p.category_id, c.name AS category_name
+            FROM products p
+            LEFT JOIN categories c ON c.id = p.category_id
+            WHERE p.available = 1 AND p.category_id = ?
+            ORDER BY p.id DESC
+            """,
+            (category_id,),
+        ).fetchall()
+        cat = db.execute("SELECT id, name FROM categories WHERE id = ?", (category_id,)).fetchone()
+        return jsonify({
+            "category": dict(cat) if cat else None,
+            "products": [serialize_product(row) for row in rows],
+        })
+
     rows = db.execute(
         """
         SELECT p.id, p.name, p.description, p.price, p.weight_options, p.image,

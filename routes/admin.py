@@ -7,6 +7,7 @@ from flask import (
     Blueprint,
     current_app,
     flash,
+    jsonify,
     redirect,
     render_template,
     request,
@@ -78,6 +79,79 @@ def login_required(view):
         return view(*args, **kwargs)
 
     return wrapped
+
+
+def _product_ajax_request():
+    return (
+        request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        or "application/json" in request.headers.get("Accept", "")
+    )
+
+
+def _product_json(payload, status=200):
+    response = jsonify(payload)
+    response.status_code = status
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+def product_login_required(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if not session.get("admin_logged_in"):
+            if _product_ajax_request():
+                return _product_json({"ok": False, "error": t("admin.products.session_expired")}, 401)
+            return redirect(url_for("admin.login"))
+        return view(*args, **kwargs)
+
+    return wrapped
+
+
+def _product_error(message, target, status=400):
+    if _product_ajax_request():
+        return _product_json({"ok": False, "error": message}, status)
+    flash(message, "error")
+    return redirect(target)
+
+
+def _product_update_response(db, product_id, message, previous_category_id=None, include_form=False):
+    product = db.execute(
+        "SELECT p.*, c.name AS category_name FROM products p "
+        "LEFT JOIN categories c ON c.id = p.category_id WHERE p.id = ?",
+        (product_id,),
+    ).fetchone()
+    categories = []
+    for row in load_admin_categories(db):
+        category = dict(row)
+        count = category["product_count"]
+        category["count_label"] = f"{count} {t('common.product') if count == 1 else t('common.products')}"
+        category["subtitle"] = t("admin.category.edit_subtitle", count=count)
+        categories.append(category)
+    stats = db.execute(
+        "SELECT (SELECT COUNT(*) FROM categories) AS category_count, "
+        "COUNT(*) AS product_count, "
+        "COUNT(CASE WHEN available = 1 THEN 1 END) AS active_product_count FROM products"
+    ).fetchone()
+    payload = {
+        "ok": True,
+        "message": message,
+        "product_id": product_id,
+        "previous_category_id": previous_category_id,
+        "product": ({
+            "id": product["id"],
+            "name": product["name"],
+            "category_id": product["category_id"],
+            "available": product["available"],
+        } if product is not None else None),
+        "product_html": render_template("admin/_product_card.html", product=product) if product is not None else "",
+        "categories": categories,
+        "stats": dict(stats),
+    }
+    if include_form and product is not None:
+        payload["form_html"] = render_template(
+            "admin/_edit_product_form.html", product=product, categories=categories
+        )
+    return _product_json(payload)
 
 
 def _parse_price(raw_value):
@@ -541,50 +615,46 @@ def delete_category(category_id):
 
 @admin_bp.route("/products/add", methods=["POST"])
 @rate_limit(limit=20, window_seconds=60)
-@login_required
+@product_login_required
 def add_product():
     name = request.form.get("name", "").strip()
     description = request.form.get("description", "").strip()
     price = _parse_price(request.form.get("price", ""))
+    panel = normalize_admin_panel(request.args.get("panel"))
+    error_target = url_for("admin.dashboard", panel=panel)
+
     try:
         weight_options = normalize_weight_options_from_form(
             request.form.getlist("weight_label"),
             request.form.getlist("weight_price"),
         )
     except ValueError as exc:
-        flash(_weight_options_error_message(exc), "error")
-        return redirect(url_for("admin.dashboard", panel=normalize_admin_panel(request.args.get("panel"))))
+        return _product_error(_weight_options_error_message(exc), error_target)
 
     stored_price = weight_options[0]["price"] if weight_options else price
     category_id = request.form.get("category_id", type=int)
     available = 1 if request.form.get("available") else 0
-    panel = normalize_admin_panel(request.args.get("panel"))
 
     if not name:
-        flash(t("flash.product_name_price_required"), "error")
-        return redirect(url_for("admin.dashboard", panel=panel))
+        return _product_error(t("flash.product_name_price_required"), error_target)
 
     if stored_price is None:
-        flash(t("flash.product_price_or_weight_required"), "error")
-        return redirect(url_for("admin.dashboard", panel=panel))
+        return _product_error(t("flash.product_price_or_weight_required"), error_target)
 
     if category_id is None:
-        flash(t("flash.product_category_required"), "error")
-        return redirect(url_for("admin.dashboard", panel=panel))
+        return _product_error(t("flash.product_category_required"), error_target)
 
     db = get_db()
     category = db.execute("SELECT 1 FROM categories WHERE id = ?", (category_id,)).fetchone()
     if category is None:
-        flash(t("flash.product_category_required"), "error")
-        return redirect(url_for("admin.dashboard", panel=panel))
+        return _product_error(t("flash.product_category_required"), error_target)
 
     try:
         image_name = _save_product_image(request.files.get("image"))
     except ValueError as exc:
-        flash(str(exc), "error")
-        return redirect(url_for("admin.dashboard", panel=panel))
+        return _product_error(str(exc), error_target)
 
-    db.execute(
+    inserted = db.execute(
         """
         INSERT INTO products(name, description, price, weight_options, image, category_id, available, stock)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -602,23 +672,28 @@ def add_product():
     )
     db.commit()
 
-    flash(t("flash.product_added"), "success")
-    return redirect(url_for("admin.dashboard", panel="add-product"))
+    success_msg = t("flash.product_added")
+    if _product_ajax_request():
+        return _product_update_response(db, inserted.lastrowid, success_msg)
+
+    flash(success_msg, "success")
+    target_panel = panel if panel else "catalogue"
+    return redirect(url_for("admin.dashboard", panel=target_panel))
 
 
 @admin_bp.route("/products/edit/<int:product_id>", methods=["GET", "POST"])
 @rate_limit(limit=20, window_seconds=60)
-@login_required
+@product_login_required
 def edit_product(product_id):
     db = get_db()
     product = db.execute("SELECT * FROM products WHERE id = ?", (product_id,)).fetchone()
     if product is None:
-        flash(t("flash.product_not_found"), "error")
-        return redirect(url_for("admin.dashboard"))
+        return _product_error(t("flash.product_not_found"), url_for("admin.dashboard"), 404)
 
     categories = db.execute("SELECT * FROM categories ORDER BY name").fetchall()
 
     if request.method == "POST":
+        error_target = url_for("admin.edit_product", product_id=product_id)
         name = request.form.get("name", "").strip()
         description = request.form.get("description", "").strip()
         price = _parse_price(request.form.get("price", ""))
@@ -628,8 +703,7 @@ def edit_product(product_id):
                 request.form.getlist("weight_price"),
             )
         except ValueError as exc:
-            flash(_weight_options_error_message(exc), "error")
-            return redirect(url_for("admin.edit_product", product_id=product_id))
+            return _product_error(_weight_options_error_message(exc), error_target)
 
         stored_price = weight_options[0]["price"] if weight_options else price
         category_id = request.form.get("category_id", type=int)
@@ -637,27 +711,22 @@ def edit_product(product_id):
         image_name = product["image"]
 
         if not name:
-            flash(t("flash.product_name_price_required"), "error")
-            return redirect(url_for("admin.edit_product", product_id=product_id))
+            return _product_error(t("flash.product_name_price_required"), error_target)
 
         if stored_price is None:
-            flash(t("flash.product_price_or_weight_required"), "error")
-            return redirect(url_for("admin.edit_product", product_id=product_id))
+            return _product_error(t("flash.product_price_or_weight_required"), error_target)
 
         if category_id is None:
-            flash(t("flash.product_category_required"), "error")
-            return redirect(url_for("admin.edit_product", product_id=product_id))
+            return _product_error(t("flash.product_category_required"), error_target)
 
         category = db.execute("SELECT 1 FROM categories WHERE id = ?", (category_id,)).fetchone()
         if category is None:
-            flash(t("flash.product_category_required"), "error")
-            return redirect(url_for("admin.edit_product", product_id=product_id))
+            return _product_error(t("flash.product_category_required"), error_target)
 
         try:
             image_name = _save_product_image(request.files.get("image"), image_name)
         except ValueError as exc:
-            flash(str(exc), "error")
-            return redirect(url_for("admin.edit_product", product_id=product_id))
+            return _product_error(str(exc), error_target)
 
         db.execute(
             """
@@ -679,20 +748,29 @@ def edit_product(product_id):
         )
         db.commit()
 
+        if _product_ajax_request():
+            return _product_update_response(db, product_id, t("flash.product_updated"), product["category_id"], include_form=True)
         flash(t("flash.product_updated"), "success")
         return redirect(url_for("admin.dashboard", panel="products", category=category_id or product["category_id"]))
 
+    if _product_ajax_request():
+        return _product_json({
+            "ok": True,
+            "form_html": render_template("admin/_edit_product_form.html", product=product, categories=categories),
+        })
     return render_template("admin/edit_product.html", product=product, categories=categories)
 
 
 @admin_bp.route("/products/delete/<int:product_id>", methods=["POST"])
 @rate_limit(limit=20, window_seconds=60)
-@login_required
+@product_login_required
 def delete_product(product_id):
     db = get_db()
-    row = db.execute("SELECT image FROM products WHERE id = ?", (product_id,)).fetchone()
+    row = db.execute("SELECT image, category_id FROM products WHERE id = ?", (product_id,)).fetchone()
+    if row is None:
+        return _product_error(t("flash.product_not_found"), url_for("admin.dashboard", panel="products"), 404)
 
-    if row and row["image"]:
+    if row["image"]:
         image_path = Path(current_app.config["UPLOAD_FOLDER"]) / row["image"]
         if image_path.exists():
             image_path.unlink()
@@ -700,15 +778,20 @@ def delete_product(product_id):
     db.execute("DELETE FROM products WHERE id = ?", (product_id,))
     db.commit()
 
+    if _product_ajax_request():
+        return _product_update_response(db, product_id, t("flash.product_deleted"), row["category_id"])
     flash(t("flash.product_deleted"), "success")
     return redirect(url_for("admin.dashboard", panel="products"))
 
 
 @admin_bp.route("/products/toggle/<int:product_id>", methods=["POST"])
 @rate_limit(limit=20, window_seconds=60)
-@login_required
+@product_login_required
 def toggle_product(product_id):
     db = get_db()
+    product = db.execute("SELECT category_id FROM products WHERE id = ?", (product_id,)).fetchone()
+    if product is None:
+        return _product_error(t("flash.product_not_found"), url_for("admin.dashboard", panel="products"), 404)
     db.execute(
         """
         UPDATE products
@@ -718,4 +801,6 @@ def toggle_product(product_id):
         (product_id,),
     )
     db.commit()
+    if _product_ajax_request():
+        return _product_update_response(db, product_id, t("flash.product_updated"), product["category_id"])
     return redirect(url_for("admin.dashboard", panel="products"))

@@ -381,6 +381,14 @@ def create_app():
             if not validate_csrf_token(token):
                 abort(400, description="Invalid CSRF token")
 
+    @app.after_request
+    def set_cache_control_headers(response):
+        if "text/html" in response.headers.get("Content-Type", ""):
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+        return response
+
     @app.context_processor
     def inject_settings():
         current_language = get_locale()
@@ -549,6 +557,6 @@ def create_app():
 app = create_app()
 
 if __name__ == "__main__":
-    debug = os.environ.get("FLASK_DEBUG", "0") == "1"
+    debug = os.environ.get("FLASK_DEBUG", "1") == "1"
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=debug)

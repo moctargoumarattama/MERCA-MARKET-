@@ -3,14 +3,17 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#120a05">
+    <meta name="theme-color" content="#f8f6f1">
     <link rel="manifest" href="{{ url_for('static', filename='admin.webmanifest') }}">
     <link rel="icon" href="{{ url_for('static', filename='images/icon-192.png') }}" type="image/png">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/icon-192.png') }}">
     <title>{{ t('admin.product.edit_title') }} | {{ shop_name }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css', v=asset_version) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin-accounts.css', v=asset_version) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modern.css', v=asset_version) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin-product.css', v=asset_version) }}">
 </head>
-<body>
+<body class="admin-page">
 <div class="page-shell">
     {% include "admin/_header.html" %}
 
@@ -20,9 +23,8 @@
                 <div>
                     <span class="eyebrow">{{ t('admin.product.kicker') }}</span>
                     <h1>{{ t('admin.product.edit_title') }}</h1>
-                    <p class="section-subtitle">{{ t('admin.product.edit_subtitle') }}</p>
                 </div>
-                <a href="{% if product.category_id %}{{ url_for('admin.dashboard', panel='products', category=product.category_id) }}{% else %}{{ url_for('admin.dashboard', panel='catalogue') }}{% endif %}">{{ t('admin.edit_product.return') }}</a>
+                <a data-admin-edit-product-return href="{% if product.category_id %}{{ url_for('admin.dashboard', panel='products', category=product.category_id) }}{% else %}{{ url_for('admin.dashboard', panel='catalogue') }}{% endif %}">{{ t('admin.edit_product.return') }}</a>
             </div>
 
             {% with messages = get_flashed_messages(with_categories=true) %}
@@ -35,45 +37,12 @@
                 {% endif %}
             {% endwith %}
 
-            <form method="post" action="{{ url_for('admin.edit_product', product_id=product.id) }}" enctype="multipart/form-data" class="admin-form">
-                {% include "_csrf_token.html" %}
-                {% set form_weight_options = product_weight_options(product) %}
-                <input name="name" placeholder="{{ t('admin.product.name_placeholder') }}" value="{{ product.name }}" required>
-                <textarea name="description" placeholder="{{ t('admin.product.description_placeholder') }}">{{ product.description }}</textarea>
-                <input
-                    name="price"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="{{ t('admin.product.price_placeholder') }}"
-                    value="{% if not form_weight_options %}{{ product.price }}{% endif %}"
-                >
-                {% include "admin/_weight_options_fields.html" %}
-                <select name="category_id" required>
-                    <option value="" disabled {% if not product.category_id %}selected{% endif %}>{{ t('admin.product.select_category') }}</option>
-                    {% for category in categories %}
-                        <option value="{{ category.id }}" {% if category.id == product.category_id %}selected{% endif %}>
-                            {{ category.name }}
-                        </option>
-                    {% endfor %}
-                </select>
-                <input name="image" type="file" accept=".jpg,.jpeg,.png,.webp,.gif">
-                {% if product.image %}
-                    <div class="product-preview">
-                        <img src="{{ url_for('static', filename='images/' + product.image) }}" alt="{{ product.name }}">
-                        <p>{{ t('admin.product.current_image', image=product.image) }}</p>
-                    </div>
-                {% endif %}
-                <label class="checkbox-label">
-                    <input type="checkbox" name="available" {% if product.available %}checked{% endif %}>
-                    {{ t('admin.product.available') }}
-                </label>
-                <button type="submit" class="button-primary">{{ t('admin.product.save_changes') }}</button>
-            </form>
+            {% include "admin/_edit_product_form.html" %}
         </section>
     </main>
 </div>
 
 <script src="{{ url_for('static', filename='js/app.js', v=asset_version) }}"></script>
+<script src="{{ url_for('static', filename='js/admin-products.js', v=asset_version) }}"></script>
 </body>
 </html>

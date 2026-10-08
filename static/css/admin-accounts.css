@@ -1,0 +1,195 @@
+.admin-accounts-main {
+    width: min(620px, calc(100% - 32px));
+    margin: 24px auto;
+}
+
+.admin-accounts-modal {
+    position: fixed;
+    inset: 0;
+    width: min(620px, calc(100% - 32px));
+    max-width: 100%;
+    max-height: 90vh;
+    max-height: 90dvh;
+    margin: auto;
+    padding: 0;
+}
+
+.admin-accounts-modal[open] {
+    display: flex;
+    flex-direction: column;
+}
+
+.admin-accounts-modal::backdrop {
+    background: rgba(15, 28, 20, .6);
+    backdrop-filter: blur(5px);
+}
+
+.admin-accounts-panel {
+    overflow: hidden;
+    border: 1px solid #d9b66c;
+    border-radius: 20px;
+    background: #faf8f5;
+    color: #1e382b;
+    box-shadow: 0 16px 40px rgba(15, 28, 20, .08);
+}
+
+.admin-accounts-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-shrink: 0;
+    padding: 18px;
+    background: #1e382b;
+    border-bottom: 2px solid #d99b26;
+}
+
+.admin-accounts-heading h2 {
+    margin: 0;
+    font-size: 1.3rem;
+    line-height: 1.2;
+    color: #fffdf8;
+}
+
+.admin-accounts-close {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    flex-shrink: 0;
+    border: 1px solid rgba(233, 195, 115, .5);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .08);
+    color: #fffdf8;
+}
+
+.admin-accounts-body,
+.admin-accounts-list {
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+}
+
+.admin-accounts-body {
+    padding: 14px;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    align-content: start;
+}
+
+.admin-account-card {
+    display: grid;
+    gap: 12px;
+    min-width: 0;
+    margin: 0;
+    padding: 12px;
+    border: 1px solid #eadfca;
+    border-radius: 12px;
+    background: #fff;
+}
+
+.admin-account-form {
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+    margin: 0;
+}
+
+.admin-account-form input {
+    width: 100%;
+    min-width: 0;
+    min-height: 42px;
+    padding: 9px 10px;
+    border: 1px solid #ded9cf;
+    border-radius: 9px;
+    font-size: .9rem;
+    color: #1e382b;
+    background: #fcfbf9;
+}
+
+.admin-account-submit {
+    min-height: 44px;
+    padding: 10px;
+    border-radius: 10px;
+    font-size: .88rem;
+    background: #d99b26;
+    color: #1e382b;
+}
+
+.admin-account-primary {
+    gap: 6px;
+    background: #faf7f0;
+}
+
+.admin-account-role {
+    font-size: .7rem;
+    font-weight: 800;
+    color: #8c5e0d;
+}
+
+.admin-account-card strong {
+    min-width: 0;
+    font-size: .9rem;
+    overflow-wrap: anywhere;
+}
+
+.admin-account-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.admin-account-identity {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+    flex: 1 1 160px;
+}
+
+.admin-account-summary form {
+    margin: 0;
+}
+
+.admin-account-delete {
+    min-height: 40px;
+    padding: 8px 10px;
+    border: 1px solid #f4caca;
+    border-radius: 9px;
+    font-size: .78rem;
+    background: #fff1f1;
+    color: #b91c1c;
+}
+
+.admin-accounts-empty {
+    margin: 0;
+    padding: 10px 4px;
+    font-size: .8rem;
+    line-height: 1.5;
+    text-align: center;
+    color: #64748b;
+}
+
+@media (max-width: 640px) {
+    .admin-accounts-modal {
+        width: 100%;
+        max-height: 92vh;
+        max-height: 92dvh;
+        margin: auto 0 0;
+        border-width: 1px 0 0;
+        border-radius: 20px 20px 0 0;
+    }
+
+    .admin-accounts-body {
+        padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .admin-accounts-main {
+        margin-block: 18px;
+    }
+
+    .admin-account-form input {
+        font-size: 16px;
+    }
+}

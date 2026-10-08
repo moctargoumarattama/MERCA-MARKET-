@@ -49,6 +49,35 @@ class AdminProductNavigationTests(unittest.TestCase):
         self.assertIn("Epicerie", html)
         self.assertNotIn("Amande", html)
         self.assertIn("data-admin-realtime-search", html)
+        self.assertIn("data-admin-category-open", html)
+        self.assertIn('<dialog class="admin-category-modal"', html)
+
+    def test_category_popup_keeps_hidden_products_and_management_actions(self):
+        with self.app.app_context():
+            database = get_db()
+            hidden_id = database.execute(
+                "INSERT INTO products(name, price, category_id, available) VALUES (?, ?, ?, ?)",
+                ("Noix masquees", 25.0, self.category_id, 0),
+            ).lastrowid
+            database.commit()
+
+        response = self.client.get(f"/admin/?panel=products&category={self.category_id}")
+        html = response.get_data(as_text=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Amande", html)
+        self.assertIn("Noix masquees", html)
+        self.assertIn(f'/admin/products/edit/{hidden_id}', html)
+        self.assertIn(f'/admin/products/toggle/{hidden_id}', html)
+        self.assertIn(f'/admin/products/delete/{hidden_id}', html)
+        self.assertIn('name="_csrf_token"', html)
+
+    def test_category_popup_is_scoped_to_products_panel(self):
+        for panel in ("overview", "catalogue", "add-product"):
+            with self.subTest(panel=panel):
+                response = self.client.get(f"/admin/?panel={panel}")
+                self.assertEqual(response.status_code, 200)
+                self.assertNotIn("data-admin-category-modal", response.get_data(as_text=True))
 
     def test_selected_category_shows_products_with_realtime_filter(self):
         response = self.client.get(f"/admin/?panel=products&category={self.category_id}")
